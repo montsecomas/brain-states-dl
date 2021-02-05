@@ -74,7 +74,7 @@ def process_data(data):
 
         ts = np.concatenate((ts, np.array([ts_tmp_new])))
 
-    # remove silent channels (silent electrodes)??
+    # TODO: remove silent channels (silent electrodes)??
 
     return ts
 
@@ -90,8 +90,12 @@ def build_dataset(subjects=[68], n_motiv=N_MOTIV):
     # i_sub = 68
     # (68: 3.42 GB (on-off med), 62: 1.46GB (off med))
     for i_sub in subjects:
+        # read data for current subject
         raw_sorted = read_data_ici(i_sub, subset='dataSorted')
+        # keep on/off-med trials if exist, reshape to time series
+        # REMARK: second dimensions (type of experiment) should not be treated as a different class: later 'masked'
         processed = process_data(data=raw_sorted)
+
         labeled_series = define_labels(data=processed)
 
 
