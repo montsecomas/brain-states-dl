@@ -83,7 +83,7 @@ def define_labels(data):
     return 0
 
 
-def build_dataset(subjects=[68], n_motiv=N_MOTIV):
+def build_ts_dataset(subjects=[68], n_motiv=N_MOTIV):
     # subjects = [62, 65, 68]
     subjects = [68]
     # i_sub = 62
