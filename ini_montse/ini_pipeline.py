@@ -37,7 +37,7 @@ def read_data_ici(i_sub, subset='dataSorted'):
     return raw_readings[subset], subj_dir
 
 
-def process_data(data):
+def process_data_sorted(data):
     """
     :param data: numpy array with dimensions (N, MS, TRIALS, STATE, MED)
         N: number of electrodes
@@ -85,9 +85,9 @@ def process_data(data):
 def define_labels(data, PD=True):
     """
     Label the ts array of a patient with an id and a label for the corresponding state
+    :param PD: bool, True if data corresponds to PD patients, False otherwise
     :param data: time series in an array of dimensions (med, rg, n_motive, TRIALS, MS, N)
-        PD: bool, True if data corresponds to PD patients, False otherwise
-    :return: array of dimensions (med x rg x n_motiv x trials, MS, N)
+    :return: two arrays of dimensions (med x rg x n_motiv x trials, MS, N) and (med x rg x n_motiv x trials, 2)
     """
     if PD:
         if data.shape[0] > 1:
@@ -124,12 +124,15 @@ def build_ts_dataset(subjects=[68], n_motiv=N_MOTIV):
     for i_sub in subjects:
         # read data for current subject:
         raw_sorted, i_dir = read_data_ici(i_sub, subset='dataSorted')
+
         # keep on/off-med trials if exist (swap order), reshape to time series:
-        # REMARK: second dimensions (type of experiment) should not be treated as a different class: TODO: 'mask'
-        processed = process_data(data=raw_sorted)
-        # label time series (create id and label)
+        processed = process_data_sorted(data=raw_sorted)
+
+        # label time series (create id and label) and flatten dimensions:
         flat_sub_ts, sub_ids = define_labels(data=processed)
-        # flat_sub_ts.shape, sub_ids.shape
+
+        # clean memory
+        del raw_sorted, processed
 
     pass
 
