@@ -43,14 +43,3 @@ def freq_filter(ts, n_motiv, n_trials, T, N, n_bands=3):
         filtered_ts[:, i_band, :, :, :] = spsg.filtfilt(b, a, ts, axis=2)
 
     return filtered_ts
-
-
-def get_ts(data, n_motiv, n_trials, ms, chan):
-    # get time series for each block
-    ts = np.zeros([n_motiv, n_trials, ms, chan])
-    for i_motiv in range(n_motiv):
-        for i_trial in range(n_trials):
-            # swap axes for time and channels
-            ts[i_motiv, i_trial, :, :] = data[:, :, i_trial, i_motiv].T
-
-    return ts

@@ -2,12 +2,13 @@ import os
 import numpy as np
 import scipy.io as sio
 import multiprocessing as mp
-from ini_montse.shared_process import freq_filter, get_ts, discard_channels
+from ini_montse.shared_process import freq_filter, discard_channels
 
 PD_N = 128
 T = 1600
 N_MOTIV = 3
 TRIALS = 108
+# TODO: parameterize, dimensions come from the input (?)
 
 
 def define_subject_dir(i_sub):
@@ -32,7 +33,7 @@ def read_data_ici(i_sub, subset='dataSorted'):
     subj_dir = define_subject_dir(i_sub)
     raw_readings = sio.loadmat("data/dataClean-ICA-" + str(i_sub) + "-T1.mat")
     # readings = raw_readings["dataSorted"][:, :, :, :3, :2]
-    return raw_readings[subset]
+    return raw_readings[subset], subj_dir
 
 
 def process_data(data):
@@ -90,12 +91,12 @@ def build_ts_dataset(subjects=[68], n_motiv=N_MOTIV):
     # i_sub = 68
     # (68: 3.42 GB (on-off med), 62: 1.46GB (off med))
     for i_sub in subjects:
-        # read data for current subject
-        raw_sorted = read_data_ici(i_sub, subset='dataSorted')
-        # keep on/off-med trials if exist, reshape to time series
-        # REMARK: second dimensions (type of experiment) should not be treated as a different class: later 'masked'
+        # read data for current subject:
+        raw_sorted, i_dir = read_data_ici(i_sub, subset='dataSorted')
+        # keep on/off-med trials if exist, reshape to time series:
+        # REMARK: second dimensions (type of experiment) should not be treated as a different class: TODO: 'mask'
         processed = process_data(data=raw_sorted)
-
+        # label time series (create id and label)
         labeled_series = define_labels(data=processed)
 
 
