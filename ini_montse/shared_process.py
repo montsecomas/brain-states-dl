@@ -12,17 +12,12 @@ def discard_channels(data):
     return cleaned_data, N
 
 
-def freq_filter(ts, n_motiv, n_trials, T, N, n_bands=3):
+def freq_filter(ts, n_motiv, n_trials, T, N, sampling_freq=500.):
     import scipy.signal as spsg
     freq_bands = ['alpha', 'beta', 'gamma']
-    filtered_ts = np.zeros([n_bands, n_motiv, n_trials, T, N])
-    for i_band in range(n_bands):
-        # select band
+    filtered_ts = np.zeros([len(freq_bands), n_motiv, n_trials, T, N])
+    for i_band in range(len(freq_bands)):
         freq_band = freq_bands[i_band]
-
-        # band-pass filtering (alpha, beta, gamma)
-        n_order = 3
-        sampling_freq = 500. # sampling rate
 
         if freq_band == 'alpha':
             low_f = 8./sampling_freq
@@ -39,7 +34,8 @@ def freq_filter(ts, n_motiv, n_trials, T, N, n_bands=3):
             raise NameError('unknown filter')
 
         # apply filter ts[n_motiv,n_trials,T,N]
-        b, a = spsg.iirfilter(n_order, [low_f, high_f], btype='bandpass', ftype='butter')
+        n_order = 3
+        b, a = spsg.iirfilter(n_order, [low_f, high_f], btype='bandpass', ftype='butter', output='ba')
         filtered_ts[:, i_band, :, :, :] = spsg.filtfilt(b, a, ts, axis=2)
 
     return filtered_ts

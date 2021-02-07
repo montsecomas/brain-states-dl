@@ -54,7 +54,7 @@ def process_data_sorted(data):
     on_med = data[:, :, :, :, 0]
     off_med = data[:, :, :, :, 1]
 
-    _, N_on = discard_channels(on_med)
+    _, N_on = discard_channels(on_med) # TODO: discard silent channels (silent electrodes by session)??
     if N_on == 0:
         subsets = [off_med]
     else:
@@ -76,8 +76,6 @@ def process_data_sorted(data):
         )
 
         ts = np.concatenate((ts, np.array([ts_tmp_new])))
-
-    # TODO: remove silent channels (silent electrodes)??
 
     return ts
 
@@ -114,6 +112,40 @@ def define_labels(data, PD=True):
     return flat_ts, data_ids
 
 
+def eeg_features(data, i_measure=0):
+    """
+    Compute features (EEG signal (0), covariance (1), or correlation (2))
+    :param data: time series (trials, T, N)
+    :param i_measure: value in {0, 1, 2} corresponding to the description
+    :return:
+    """
+    # TODO: apply filter
+    filtered_ts = freq_filter(ts=data, n_motiv=N_MOTIV, n_trials=TRIALS, T=T, N=PD_N)
+
+    # TODO: compute features
+    if i_measure == 0:  # power of signal within each sliding window (rectification by absolute value)
+        # create the design matrix [samples,features]
+        vect_features = np.abs(filtered_ts).mean(axis=2)
+
+    else:  # covariance or correlation
+        EEG_FC = np.zeros([N_MOTIV, TRIALS, PD_N,
+                           PD_N])  # dynamic FC = covariance or Pearson correlation of signal within each sliding window
+        for i_motiv in range(N_MOTIV):
+            for i_trial in range(TRIALS):
+                ts_tmp = filtered_ts[i_motiv, i_trial, :, :]
+                ts_tmp -= np.outer(np.ones(T), ts_tmp.mean(0))
+                EEG_FC[i_motiv, i_trial, :, :] = np.tensordot(ts_tmp, ts_tmp, axes=(0, 0)) / float(T - 1)
+                if i_measure == 2:  # correlation, not covariance
+                    EEG_FC[i_motiv, i_trial, :, :] /= np.sqrt(
+                        np.outer(EEG_FC[i_motiv, i_trial, :, :].diagonal(), EEG_FC[i_motiv, i_trial, :, :].diagonal()))
+
+        # vectorize the connectivity matrices to obtain the design matrix [samples,features]
+        mask_tri = np.tri(PD_N, PD_N, -1, dtype=np.bool)  # mask to extract lower triangle of matrix
+        vect_features = EEG_FC[:, :, mask_tri]
+
+    return 0
+
+
 def build_ts_dataset(subjects=[68], n_motiv=N_MOTIV):
     # subjects = [62, 65, 68]
     subjects = [68]
@@ -130,6 +162,9 @@ def build_ts_dataset(subjects=[68], n_motiv=N_MOTIV):
 
         # label time series (create id and label) and flatten dimensions:
         flat_sub_ts, sub_ids = define_labels(data=processed)
+
+        # TODO: extract features (EEG's signal, covariance, correlation
+        feat_ds = eeg_features(data=flat_sub_ts)
 
         # clean memory
         del raw_sorted, processed
