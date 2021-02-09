@@ -34,7 +34,8 @@ def freq_filter(ts, n_motiv, n_trials, T, N, sampling_freq=500.):
             raise NameError('unknown filter')
 
         # apply filter ts[n_motiv,n_trials,T,N]
-        n_order = 3
+        n_order = 3 # espectre del senyal (furier). ordre marca com de fort atenues les frequencies que no interessen
+        # minim ordre 2, 3 més fort, 4 més fort, etc.
         b, a = spsg.iirfilter(n_order, [low_f, high_f], btype='bandpass', ftype='butter', output='ba')
         filtered_ts[:, i_band, :, :, :] = spsg.filtfilt(b, a, ts, axis=2)
 
