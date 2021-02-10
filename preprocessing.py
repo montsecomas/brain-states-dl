@@ -137,6 +137,11 @@ class BrainStatesTrial:
 
 class BrainStatesFeaturing:
     def __init__(self, ts_data, pd_sub):
+        """
+        Initizalize variables
+        :param ts_data: dimensions (total_trials, t, red_n)
+        :param pd_sub:
+        """
         self.ts_data = ts_data
         self.pd_sub = pd_sub
         self.N_MOTIV = 3
@@ -144,13 +149,23 @@ class BrainStatesFeaturing:
         self.ms = ts_data.shape[1]
         self.n_raw_features = ts_data.shape[2]
         self.sampling_freq = 500.
+        self.n_bands = 3
         self.band_filter_order = 3
+        self.bandpassed = self._filter_frequencies()
+        self.ini_eeg_f = self._build_cor_cov_mat()
+        self.mask_tri = np.tri(self.n_raw_features, self.n_raw_features, -1, dtype=np.bool_)
 
     def _filter_frequencies(self):
+        """
+        Decompose sequences in self.ts_data (total_trials, t, red_n) by different freq bands
+        :return: decomposed series (n_bands, total_trials, t, red_n)
+        """
         import scipy.signal as spsg
         freq_bands = ['alpha', 'beta', 'gamma']
+        if len(freq_bands) != self.n_bands:
+            raise ValueError('Rename frequency bands')
         freqs_ts = np.empty([0, self.total_trials, self.ms, self.n_raw_features])
-        for i_band in range(len(freq_bands)):
+        for i_band in range(self.n_bands):
             freq_band = freq_bands[i_band]
 
             if freq_band == 'alpha':
@@ -175,50 +190,33 @@ class BrainStatesFeaturing:
 
         return freqs_ts
 
-    # TODO: check following functions
-    def build_datasets(self, eeg_seq_mean=True, eeg_mean_cov=True, eeg_mean_cor=True):
-        filt = sample_featuring._filter_frequencies()
-        datasets = np.empty([0, 0, 0, 0]) # TODO: define dimensions
-        if eeg_seq_mean:
-            ds = self._seq_eeg_mean(filt)
-            datasets = np.concatenate((datasets, np.array([ds])))
-
-        if eeg_mean_cov or eeg_mean_cor:
-            eeg_f = self._build_cor_cov_mat(filt)
-            mask_tri = np.tri(self.n_raw_features, self.n_raw_features, -1, dtype=np.bool)
-            if eeg_mean_cov:
-                ds = eeg_f[:, :, mask_tri]
-                datasets = np.concatenate((datasets, np.array([ds])))
-            if eeg_mean_cor:
-                for i_trial in range(self.total_trials):
-                    eeg_f[i_trial, :, :] /= np.sqrt(
-                        np.outer(eeg_f[i_trial, :, :].diagonal(), eeg_f[i_trial, :, :].diagonal()))
-                ds = eeg_f[:, :, mask_tri]
-                datasets = np.concatenate((datasets, np.array([ds])))
-
-        return datasets
-
-    def _seq_eeg_mean(self, filtered_ts):
-        return np.abs(filtered_ts).mean(axis=-2)
-
-    def _build_cor_cov_mat(self, filtered_ts):
-        EEG_FC = np.zeros([self.total_trials, self.n_raw_features, self.n_raw_features])
-        for i_trial in range(self.total_trials):
-            ts_tmp = filtered_ts[i_trial, :, :]
-            ts_tmp -= np.outer(np.ones(self.ms), ts_tmp.mean(0))
-            EEG_FC[i_trial, :, :] = np.tensordot(ts_tmp, ts_tmp, axes=(0, 0)) / float(self.ms - 1)
+    def _build_cor_cov_mat(self):
+        EEG_FC = np.zeros([self.n_bands, self.total_trials, self.n_raw_features, self.n_raw_features])
+        for i_band in range(self.n_bands):
+            for i_trial in range(self.total_trials):
+                ts_tmp = self.bandpassed[i_band, i_trial, :, :].copy()
+                ts_tmp -= np.outer(np.ones(self.ms), ts_tmp.mean(0))
+                EEG_FC[i_band, i_trial, :, :] = np.tensordot(ts_tmp, ts_tmp, axes=(0, 0)) / float(self.ms - 1)
         return EEG_FC
 
-    def _seq_eeg_cov(self, EEG_FC):
-        mask_tri = np.tri(self.n_raw_features, self.n_raw_features, -1, dtype=np.bool)
-        return EEG_FC[:, :, mask_tri]
+    def build_signal_dataset(self):
+        """
+        Power of signal within each sliding window (rectification by absolute value)
+        :return: mean absolute values for each feature (n_bands, total_trials, n_raw_features)
+        """
+        return np.abs(self.bandpassed).mean(axis=-2)
 
-    def _seq_eeg_corr(self, EEG_FC):
-        for i_trial in range(self.total_trials):
-            EEG_FC[i_trial, :, :] /= np.sqrt(
-                np.outer(EEG_FC[i_trial, :, :].diagonal(), EEG_FC[i_trial, :, :].diagonal()))
-        mask_tri = np.tri(self.n_raw_features, self.n_raw_features, -1, dtype=np.bool)
-        return EEG_FC[:, :, mask_tri]
+    def build_cov_dataset(self):
+        return self.ini_eeg_f[:, :, self.mask_tri].copy()
+
+    def build_cor_dataset(self):
+        eeg_f = self.ini_eeg_f.copy()
+        for i_band in range(self.n_bands):
+            for i_trial in range(self.total_trials):
+                eeg_f[i_band, i_trial, :, :] /= np.sqrt(
+                    np.outer(eeg_f[i_band, i_trial, :, :].diagonal(), eeg_f[i_band, i_trial, :, :].diagonal()))
+
+        return eeg_f[:, :, self.mask_tri]
 
 
 if __name__ == '__main__':
@@ -226,6 +224,6 @@ if __name__ == '__main__':
         sample = BrainStatesTrial(35)
         clean_data, clean_pks, is_pd = sample.run_pipeline()
         sample_featuring = BrainStatesFeaturing(clean_data, is_pd)
-        # filt = sample_featuring._filter_frequencies()
-        # filt.shape: (3, 1296, 1200, 47)
-        # shapes (1296, 1200, 47), (1296, 2)
+        signal_ds = sample_featuring.build_signal_dataset()
+        cov_ds = sample_featuring.build_cov_dataset()
+        cor_ds = sample_featuring.build_cor_dataset()
