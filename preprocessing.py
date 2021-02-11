@@ -144,24 +144,32 @@ class BrainStatesTrial:
 
 
 class BrainStatesFeaturing:
-    def __init__(self, ts_data, pd_sub):
+    def __init__(self, input_ts, input_labels, pd_sub):
         """
         Initizalize variables
         :param ts_data: dimensions (total_trials, t, red_n)
         :param pd_sub:
         """
-        self.ts_data = ts_data
+        self.input_ts = input_ts
+        self.input_labels = input_labels
+        self.ms = self.input_ts.shape[1]
+        self.n_raw_features = self.input_ts.shape[2]
+        self.ts_data, self.ts_labels = self._clean_undone_experiments()
         self.pd_sub = pd_sub
         self.N_MOTIV = 3
-        self.total_trials = ts_data.shape[0]
-        self.ms = ts_data.shape[1]
-        self.n_raw_features = ts_data.shape[2]
+        self.total_trials = self.ts_data.shape[0]
         self.sampling_freq = 500.
         self.n_bands = 3
         self.band_filter_order = 3
         self.bandpassed = self._filter_frequencies()
         self.ini_eeg_f = self._build_cor_cov_mat()
         self.mask_tri = np.tri(self.n_raw_features, self.n_raw_features, -1, dtype=np.bool_)
+
+    def _clean_undone_experiments(self):
+        invalid_exp = np.sum(np.sum(np.isnan(self.input_ts), axis=1), axis=1) == self.ms*self.n_raw_features
+        valid_exp = np.logical_not(invalid_exp)
+
+        return self.input_ts[valid_exp, :, :], self.input_labels[valid_exp, :]
 
     def _filter_frequencies(self):
         """
@@ -234,10 +242,10 @@ class BrainStatesFeaturing:
 
 
 if __name__ == '__main__':
-    for subject in [25, 35]:
-        sample = BrainStatesTrial(25)
-        clean_data, clean_pks, is_pd = sample.run_pipeline()
-        sample_featuring = BrainStatesFeaturing(clean_data, is_pd)
+    for subject in [25, 26]:
+        sample = BrainStatesTrial(26)
+        flat_data, flat_pks, is_pd = sample.run_pipeline()
+        sample_featuring = BrainStatesFeaturing(input_ts=flat_data, input_labels=flat_pks, pd_sub=is_pd)
         signal_ds = sample_featuring.build_signal_dataset()
         cov_ds = sample_featuring.build_cov_dataset()
         cor_ds = sample_featuring.build_cor_dataset()
