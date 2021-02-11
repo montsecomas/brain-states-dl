@@ -243,9 +243,11 @@ class BrainStatesFeaturing:
 
 if __name__ == '__main__':
     for subject in [25, 26]:
-        sample = BrainStatesTrial(26)
+        sample = BrainStatesTrial(25)
         flat_data, flat_pks, is_pd = sample.run_pipeline()
         sample_featuring = BrainStatesFeaturing(input_ts=flat_data, input_labels=flat_pks, pd_sub=is_pd)
         signal_ds = sample_featuring.build_signal_dataset()
         cov_ds = sample_featuring.build_cov_dataset()
         cor_ds = sample_featuring.build_cor_dataset()
+        # 25: signal_ds.shape, cov_ds.shape, cov_ds.shape = ((3, 1296, 42), (3, 1296, 861), (3, 1296, 861))
+        # 26: signal_ds.shape, cov_ds.shape, cov_ds.shape = ((3, 1017, 49), (3, 1017, 1176), (3, 1017, 1176))
