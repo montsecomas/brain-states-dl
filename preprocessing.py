@@ -29,6 +29,7 @@ class BrainStatesTrial:
             raise ValueError(('No data for subject '+str(self.i_sub)))
 
         if self.PD:
+            # TODO: Create self variable to indicate if there are two sessions or only off-med
             self.input_path = "data/pd_sb/dataClean-ICA-" + str(self.i_sub) + "-T1.mat"
         else:
             self.input_path = "data/healthy_sb/dataClean-ICA3-" + str(self.i_sub) + "-T1.mat"
@@ -214,9 +215,15 @@ class BrainStatesFeaturing:
         return np.abs(self.bandpassed).mean(axis=-2)
 
     def build_cov_dataset(self):
+        """
+        :return: covariance between mean absolute values for each feature (n_bands, total_trials, n_raw_features^2/2)
+        """
         return self.ini_eeg_f[:, :, self.mask_tri].copy()
 
     def build_cor_dataset(self):
+        """
+        :return: correlation between mean absolute values for each feature (n_bands, total_trials, n_raw_features^2/2)
+        """
         eeg_f = self.ini_eeg_f.copy()
         for i_band in range(self.n_bands):
             for i_trial in range(self.total_trials):
@@ -227,8 +234,8 @@ class BrainStatesFeaturing:
 
 
 if __name__ == '__main__':
-    for subject in [35]:
-        sample = BrainStatesTrial(35)
+    for subject in [25, 35]:
+        sample = BrainStatesTrial(25)
         clean_data, clean_pks, is_pd = sample.run_pipeline()
         sample_featuring = BrainStatesFeaturing(clean_data, is_pd)
         signal_ds = sample_featuring.build_signal_dataset()
