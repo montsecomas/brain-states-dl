@@ -2,7 +2,7 @@ import os
 import numpy as np
 import scipy.io as sio
 import itertools
-from utils import load_cfg
+from utils.utils import load_cfg
 
 
 class BrainStatesSubject:
