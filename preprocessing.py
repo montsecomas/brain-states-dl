@@ -58,8 +58,15 @@ class BrainStatesTrial:
     def _discard_channels(self, data):
         # discard silent channels
         # input data must have flatten session dimension: (electrodes, ms, trials, motiv x session x block)
-        invalid_ch = np.logical_or(np.abs(data[:, :, 0, 0]).max(axis=1) == 0,
+        invalid_ch_s0 = np.logical_or(np.abs(data[:, :, 0, 0]).max(axis=1) == 0,
                                    np.isnan(data[:, 0, 0, 0]))
+        if self.PD:
+            invalid_ch_s1 = np.logical_or(np.abs(data[:, :, 0, 0]).max(axis=1) == 0,
+                                       np.isnan(data[:, 0, 0, 0]))
+        else:
+            invalid_ch_s1 = np.logical_or(np.abs(data[:, :, 0, 1]).max(axis=1) == 0,
+                                       np.isnan(data[:, 0, 0, 1]))
+        invalid_ch = np.logical_or(invalid_ch_s0, invalid_ch_s1)
         valid_ch = np.logical_not(invalid_ch)
         cleaned_data = data[valid_ch, :, :, :]
         N = valid_ch.sum()
