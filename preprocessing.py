@@ -5,6 +5,10 @@ import multiprocessing as mp
 from utils_montse.shared_process import freq_filter, discard_channels
 import itertools
 
+DATA_PATH = 'data/'
+PD_PATH = DATA_PATH + 'pd_sb/'
+HEALTHY_PATH = DATA_PATH + 'healthy_sb/'
+
 
 class BrainStatesTrial:
     def __init__(self, i_sub, subset='dataSorted'):
@@ -30,10 +34,13 @@ class BrainStatesTrial:
 
         if self.PD:
             # TODO: Create self variable to indicate if there are two sessions or only off-med
-            self.input_path = "data/pd_sb/dataClean-ICA-" + str(self.i_sub) + "-T1.mat"
+            self.input_path = PD_PATH + "dataClean-ICA-" + str(self.i_sub) + "-T1.mat"
+            subject_string = 'Parkinson subject.'
         else:
-            self.input_path = "data/healthy_sb/dataClean-ICA3-" + str(self.i_sub) + "-T1.mat"
-
+            self.input_path = HEALTHY_PATH + "dataClean-ICA3-" + str(self.i_sub) + "-T1.mat"
+            subject_string = 'Healthy subject.'
+        print('------------------------------------\nSubject', i_sub, '-', subject_string,
+              '\n------------------------------------')
         self.raw_data = sio.loadmat(self.input_path)[self.subset]
 
     def run_pipeline(self):
@@ -48,9 +55,9 @@ class BrainStatesTrial:
         :return: directory path
         """
         if self.PD:
-            res_dir = "data/pd_sb/res_subject_" + str(self.i_sub) + "/"
+            res_dir = PD_PATH + "res_subject_" + str(self.i_sub) + "/"
         else:
-            res_dir = "data/healthy_sb/res_subject_" + str(self.i_sub) + "/"
+            res_dir = HEALTHY_PATH + "res_subject_" + str(self.i_sub) + "/"
         if not os.path.exists(res_dir):
             print("create directory:", res_dir)
             os.makedirs(res_dir)
@@ -71,6 +78,7 @@ class BrainStatesTrial:
         valid_ch = np.logical_not(invalid_ch)
         cleaned_data = data[valid_ch, :, :, :]
         N = valid_ch.sum()
+        print(N, 'left channels out of ', data.shape[0])
         return cleaned_data, N
 
     def _process_data_sorted(self):
@@ -150,6 +158,7 @@ class BrainStatesFeaturing:
         :param ts_data: dimensions (total_trials, t, red_n)
         :param pd_sub:
         """
+        print('Applying band-pass filters and computing final features')
         self.input_ts = input_ts
         self.input_labels = input_labels
         self.ms = self.input_ts.shape[1]
@@ -168,6 +177,7 @@ class BrainStatesFeaturing:
     def _clean_undone_experiments(self):
         invalid_exp = np.sum(np.sum(np.isnan(self.input_ts), axis=1), axis=1) == self.ms*self.n_raw_features
         valid_exp = np.logical_not(invalid_exp)
+        print(np.sum(valid_exp), 'left observations out of', self.input_ts.shape[0])
 
         return self.input_ts[valid_exp, :, :], self.input_labels[valid_exp, :]
 
@@ -243,11 +253,21 @@ class BrainStatesFeaturing:
 
 if __name__ == '__main__':
     for subject in [25, 26]:
-        sample = BrainStatesTrial(25)
+        sample = BrainStatesTrial(subject)
         flat_data, flat_pks, is_pd = sample.run_pipeline()
         sample_featuring = BrainStatesFeaturing(input_ts=flat_data, input_labels=flat_pks, pd_sub=is_pd)
+
+        if is_pd:
+            output_path = PD_PATH + 'res_subject_' + str(subject) + '/'
+        else:
+            output_path = HEALTHY_PATH + 'res_subject_' + str(subject) + '/'
+
         signal_ds = sample_featuring.build_signal_dataset()
         cov_ds = sample_featuring.build_cov_dataset()
         cor_ds = sample_featuring.build_cor_dataset()
         # 25: signal_ds.shape, cov_ds.shape, cov_ds.shape = ((3, 1296, 42), (3, 1296, 861), (3, 1296, 861))
         # 26: signal_ds.shape, cov_ds.shape, cov_ds.shape = ((3, 1017, 49), (3, 1017, 1176), (3, 1017, 1176))
+        print('Saving output datasets')
+        np.save(output_path + 'frequences_pow_mean_dataset_' + str(subject), signal_ds)
+        np.save(output_path + 'frequences_covariance_dataset_' + str(subject), cov_ds)
+        np.save(output_path + 'frequences_correlation_dataset_' + str(subject), cor_ds)
