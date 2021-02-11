@@ -1,17 +1,12 @@
 import os
 import numpy as np
 import scipy.io as sio
-import multiprocessing as mp
-from utils_montse.shared_process import freq_filter, discard_channels
 import itertools
-
-DATA_PATH = 'data/'
-PD_PATH = DATA_PATH + 'pd_sb/'
-HEALTHY_PATH = DATA_PATH + 'healthy_sb/'
+from utils import load_cfg
 
 
-class BrainStatesTrial:
-    def __init__(self, i_sub, subset='dataSorted'):
+class BrainStatesSubject:
+    def __init__(self, i_sub, pd_data_path, healthy_data_path, subset='dataSorted'):
         """
         The class works under the assumption that the raw data's dimensions are sorted as follows:
         (N_features, T_milliseconds, trials, x), where x:
@@ -21,6 +16,8 @@ class BrainStatesTrial:
         :param subset: key of the python dictionary corresponding to .mat file
         """
         self.i_sub = i_sub
+        self.PD_PATH = pd_data_path
+        self.HEALTHY_PATH = healthy_data_path
         self.subset = subset
         self.HS_LIST = np.arange(25, 36)
         self.PD_LIST = [58, 59, 62, 65, 68]
@@ -34,10 +31,10 @@ class BrainStatesTrial:
 
         if self.PD:
             # TODO: Create self variable to indicate if there are two sessions or only off-med
-            self.input_path = PD_PATH + "dataClean-ICA-" + str(self.i_sub) + "-T1.mat"
+            self.input_path = self.PD_PATH + "dataClean-ICA-" + str(self.i_sub) + "-T1.mat"
             subject_string = 'Parkinson subject.'
         else:
-            self.input_path = HEALTHY_PATH + "dataClean-ICA3-" + str(self.i_sub) + "-T1.mat"
+            self.input_path = self.HEALTHY_PATH + "dataClean-ICA3-" + str(self.i_sub) + "-T1.mat"
             subject_string = 'Healthy subject.'
         print('------------------------------------\nSubject', i_sub, '-', subject_string,
               '\n------------------------------------')
@@ -55,9 +52,9 @@ class BrainStatesTrial:
         :return: directory path
         """
         if self.PD:
-            res_dir = PD_PATH + "res_subject_" + str(self.i_sub) + "/"
+            res_dir = self.PD_PATH + "res_subject_" + str(self.i_sub) + "/"
         else:
-            res_dir = HEALTHY_PATH + "res_subject_" + str(self.i_sub) + "/"
+            res_dir = self.HEALTHY_PATH + "res_subject_" + str(self.i_sub) + "/"
         if not os.path.exists(res_dir):
             print("create directory:", res_dir)
             os.makedirs(res_dir)
@@ -252,8 +249,14 @@ class BrainStatesFeaturing:
 
 
 if __name__ == '__main__':
-    for subject in [25, 26]:
-        sample = BrainStatesTrial(subject)
+
+    cfg = load_cfg()
+    PD_PATH = cfg['data_path'] + cfg['pd_dir']
+    HEALTHY_PATH = cfg['data_path'] + cfg['healthy_dir']
+
+    for subject in cfg['pd_subjects']:
+        sample = BrainStatesSubject(i_sub=subject, pd_data_path=PD_PATH, healthy_data_path=HEALTHY_PATH,
+                                    subset=cfg['mb_dict'])
         flat_data, flat_pks, is_pd = sample.run_pipeline()
         sample_featuring = BrainStatesFeaturing(input_ts=flat_data, input_labels=flat_pks, pd_sub=is_pd)
 
