@@ -1,12 +1,17 @@
+import sys
+sys.path.append('/Users/Meme/TFM/source')
+
+
 import os
 import numpy as np
 import scipy.io as sio
 import itertools
-from utils.utils import load_cfg
+from utils.utils import load_cfg, is_pd_patient, raw_input_path, subject_res_dir, \
+    processed_data_path, processed_labels_path
 
 
 class BrainStatesSubject:
-    def __init__(self, i_sub, pd_data_path, healthy_data_path, subset='dataSorted'):
+    def __init__(self, i_sub, PD, data_path, pd_dir, healthy_dir, subset='dataSorted'):
         """
         The class works under the assumption that the raw data's dimensions are sorted as follows:
         (N_features, T_milliseconds, trials, x), where x:
@@ -16,32 +21,26 @@ class BrainStatesSubject:
         :param subset: key of the python dictionary corresponding to .mat file
         """
         self.i_sub = i_sub
-        self.PD_PATH = pd_data_path
-        self.HEALTHY_PATH = healthy_data_path
         self.subset = subset
-        self.HS_LIST = np.arange(25, 36)
-        self.PD_LIST = [58, 59, 62, 65, 68]
         self.N_MOTIV = 3
-        if i_sub in self.HS_LIST:
-            self.PD = False
-        elif i_sub in self.PD_LIST:
-            self.PD = True
-        else:
-            raise ValueError(('No data for subject '+str(self.i_sub)))
+        self.PD = PD
+        self.data_path = data_path
+        self.pd_dir = pd_dir
+        self.healthy_dir = healthy_dir
+        self.input_path = raw_input_path(i_sub, is_pd=self.PD, data_path=self.data_path, pd_dir=self.pd_dir,
+                                         healthy_dir=self.healthy_dir)
 
         if self.PD:
             # TODO: Create self variable to indicate if there are two sessions or only off-med
-            self.input_path = self.PD_PATH + "dataClean-ICA-" + str(self.i_sub) + "-T1.mat"
             subject_string = 'Parkinson subject.'
         else:
-            self.input_path = self.HEALTHY_PATH + "dataClean-ICA3-" + str(self.i_sub) + "-T1.mat"
             subject_string = 'Healthy subject.'
         print('------------------------------------\nSubject', i_sub, '-', subject_string,
               '\n------------------------------------')
         self.raw_data = sio.loadmat(self.input_path)[self.subset]
 
     def run_pipeline(self):
-        subj_dir = self._define_subject_dir()
+        self._define_subject_dir()
         clean_ts = self._process_data_sorted()
         flat_sub_ts, sub_ids = self._define_labels(clean_ts)
         return flat_sub_ts, sub_ids, self.PD
@@ -51,26 +50,24 @@ class BrainStatesSubject:
         Creates the directory for the outputs if it doesn't exist
         :return: directory path
         """
-        if self.PD:
-            res_dir = self.PD_PATH + "res_subject_" + str(self.i_sub) + "/"
-        else:
-            res_dir = self.HEALTHY_PATH + "res_subject_" + str(self.i_sub) + "/"
+        res_dir = subject_res_dir(subject_id=self.i_sub, is_pd=self.PD, data_path=self.data_path, pd_dir=self.pd_dir,
+                                  healthy_dir=self.healthy_dir)
+
         if not os.path.exists(res_dir):
             print("create directory:", res_dir)
             os.makedirs(res_dir)
-        return res_dir
 
     def _discard_channels(self, data):
         # discard silent channels
         # input data must have flatten session dimension: (electrodes, ms, trials, motiv x session x block)
         invalid_ch_s0 = np.logical_or(np.abs(data[:, :, 0, 0]).max(axis=1) == 0,
-                                   np.isnan(data[:, 0, 0, 0]))
+                                      np.isnan(data[:, 0, 0, 0]))
         if self.PD:
             invalid_ch_s1 = np.logical_or(np.abs(data[:, :, 0, 0]).max(axis=1) == 0,
-                                       np.isnan(data[:, 0, 0, 0]))
+                                          np.isnan(data[:, 0, 0, 0]))
         else:
             invalid_ch_s1 = np.logical_or(np.abs(data[:, :, 0, 1]).max(axis=1) == 0,
-                                       np.isnan(data[:, 0, 0, 1]))
+                                          np.isnan(data[:, 0, 0, 1]))
         invalid_ch = np.logical_or(invalid_ch_s0, invalid_ch_s1)
         valid_ch = np.logical_not(invalid_ch)
         cleaned_data = data[valid_ch, :, :, :]
@@ -251,26 +248,31 @@ class BrainStatesFeaturing:
 if __name__ == '__main__':
 
     cfg = load_cfg()
-    PD_PATH = cfg['data_path'] + cfg['pd_dir']
-    HEALTHY_PATH = cfg['data_path'] + cfg['healthy_dir']
 
-    for subject in cfg['pd_subjects']:
-        sample = BrainStatesSubject(i_sub=subject, pd_data_path=PD_PATH, healthy_data_path=HEALTHY_PATH,
-                                    subset=cfg['mb_dict'])
+    for subject in cfg['healthy_subjects']:
+        is_pd = is_pd_patient(subject, healthy_subjects=cfg['healthy_subjects'], pd_subjects=cfg['pd_subjects'])
+
+        sample = BrainStatesSubject(i_sub=subject, PD=is_pd, subset=cfg['mat_dict'],
+                                    data_path=cfg['data_path'], pd_dir=cfg['pd_dir'], healthy_dir=cfg['healthy_dir'])
         flat_data, flat_pks, is_pd = sample.run_pipeline()
+
         sample_featuring = BrainStatesFeaturing(input_ts=flat_data, input_labels=flat_pks, pd_sub=is_pd)
-
-        if is_pd:
-            output_path = PD_PATH + 'res_subject_' + str(subject) + '/'
-        else:
-            output_path = HEALTHY_PATH + 'res_subject_' + str(subject) + '/'
-
         signal_ds = sample_featuring.build_signal_dataset()
         cov_ds = sample_featuring.build_cov_dataset()
         cor_ds = sample_featuring.build_cor_dataset()
         # 25: signal_ds.shape, cov_ds.shape, cov_ds.shape = ((3, 1296, 42), (3, 1296, 861), (3, 1296, 861))
         # 26: signal_ds.shape, cov_ds.shape, cov_ds.shape = ((3, 1017, 49), (3, 1017, 1176), (3, 1017, 1176))
+
         print('Saving output datasets')
-        np.save(output_path + 'frequences_pow_mean_dataset_' + str(subject), signal_ds)
-        np.save(output_path + 'frequences_covariance_dataset_' + str(subject), cov_ds)
-        np.save(output_path + 'frequences_correlation_dataset_' + str(subject), cor_ds)
+        np.save(processed_data_path(subject_id=subject, is_pd=is_pd, feature_name='pow_mean',
+                                    data_path=cfg['data_path'], pd_dir=cfg['pd_dir'], healthy_dir=cfg['healthy_dir']),
+                signal_ds)
+        np.save(processed_data_path(subject_id=subject, is_pd=is_pd, feature_name='pow_cov',
+                                    data_path=cfg['data_path'], pd_dir=cfg['pd_dir'], healthy_dir=cfg['healthy_dir']),
+                cov_ds)
+        np.save(processed_data_path(subject_id=subject, is_pd=is_pd, feature_name='pow_cor',
+                                    data_path=cfg['data_path'], pd_dir=cfg['pd_dir'], healthy_dir=cfg['healthy_dir']),
+                cor_ds)
+        np.save(processed_labels_path(subject_id=subject, is_pd=is_pd,
+                                      data_path=cfg['data_path'], pd_dir=cfg['pd_dir'], healthy_dir=cfg['healthy_dir']),
+                sample_featuring.ts_labels)

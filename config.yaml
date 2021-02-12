@@ -1,6 +1,6 @@
-data_path: 'data/'
-pd_dir: 'pd_sb/'
-healthy_dir: 'healthy_sb/'
-mb_dict: 'dataSorted'
-pd_subjects: [25, 26]
-healthy_subjects : []
+data_path: 'data'
+pd_dir: 'pd_sb'
+healthy_dir: 'healthy_sb'
+mat_dict: 'dataSorted'
+pd_subjects: []
+healthy_subjects : [25, 26]
