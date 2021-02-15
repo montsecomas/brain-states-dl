@@ -4,3 +4,4 @@ healthy_dir: 'healthy_sb'
 mat_dict: 'dataSorted'
 pd_subjects: []
 healthy_subjects : [25, 26]
+dense_hidden_nodes : 10

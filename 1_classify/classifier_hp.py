@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from utils.utils import load_cfg, is_pd_patient, processed_data_path
+from utils.utils import load_cfg, is_pd_patient, processed_data_path, processed_labels_path
 
 READ_MODEL = False
 MAKE_PRED = False
@@ -14,12 +14,12 @@ MAKE_PRED = False
 
 # Define the network
 class Net(nn.Module):
-    def __init__(self, n_features, n_states):
+    def __init__(self, n_features, n_states, n_hidden_nodes):
         super(Net, self).__init__()
         # Inputs to hidden layer linear transformation
-        self.hidden = nn.Linear(n_features, 256)
+        self.hidden = nn.Linear(n_features, n_hidden_nodes)
         # Output layer, 10 units - one for each digit
-        self.output = nn.Linear(256, n_states)
+        self.output = nn.Linear(n_hidden_nodes, n_states)
 
         # Define sigmoid activation and softmax output
         self.sigmoid = nn.Sigmoid()
@@ -43,10 +43,17 @@ if __name__ == '__main__':
         input_data = np.load(processed_data_path(subject_id=subject, is_pd=is_pd, feature_name='pow_mean',
                                                  data_path=cfg['data_path'], pd_dir=cfg['pd_dir'],
                                                  healthy_dir=cfg['healthy_dir']))
+        labels = np.load(processed_labels_path(subject_id=subject, is_pd=is_pd, data_path=cfg['data_path'],
+                                               pd_dir=cfg['pd_dir'], healthy_dir=cfg['healthy_dir']))
+        unique_labels = np.unique(labels[:, 1])
+        # TODO: labels to int
+
+        # TODO: test the following
         for freq in np.arange(freq):
             freq = 0
-            net = Net(n_features=input_data.shape[2], n_states=6)
-            trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
+            net = Net(n_features=input_data.shape[2], n_states=len(unique_labels),
+                      n_hidden_nodes=cfg['dense_hidden_nodes'])
+            trainloader = torch.utils.data.DataLoader([input_data[0, :, :], labels[:, 1]], batch_size=4,
                                                       shuffle=True, num_workers=2)
             # Define loss function and optimizer
             criterion = nn.CrossEntropyLoss()
