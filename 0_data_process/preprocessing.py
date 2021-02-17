@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/Users/Meme/TFM/source')
+sys.path.append('/Users/mcomastu/TFM/brain-states-dl') # TODO: remove this first two lines
 
 
 import os
