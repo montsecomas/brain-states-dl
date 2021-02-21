@@ -8,6 +8,7 @@
 
 # Distribution / packaging
 .vscode
+lightning_logs/
 .DS_Store
 .idea
 .Python
