@@ -5,7 +5,7 @@ sys.path.append('/Users/mcomastu/TFM/brain-states-dl') # TODO: remove this first
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from nn_classification.data_loaders import EEGDataset, subject_nn_data
-from nn_classification.pl_module import LitAutoEncoder
+from nn_classification.pl_module import LitClassifier
 from utils.utils import load_cfg
 import numpy as np
 
@@ -26,6 +26,7 @@ if __name__ == '__main__':
 
         n_freqs = 1
         for freq in np.arange(n_freqs):
+            # freq = 2
             bs = 64
             # data
             train_data = EEGDataset(np_input=input_data[freq, :, :], np_targets=targets)
@@ -34,8 +35,10 @@ if __name__ == '__main__':
             val_loader = DataLoader(train_data, batch_size=bs, shuffle=True, num_workers=0)
 
             # model
-            model = LitAutoEncoder()
+            model = LitClassifier(n_features=input_data.shape[2],
+                                  n_states=len(np.unique(targets)),
+                                  n_hidden_nodes=128, n_hidden_layers=2, lr=1e-3)
 
             # training
-            trainer = pl.Trainer(gpus=4, num_nodes=8, precision=16, limit_train_batches=0.5)
+            trainer = pl.Trainer(limit_train_batches=0.5, max_epochs=10000)
             trainer.fit(model, train_loader, val_loader)

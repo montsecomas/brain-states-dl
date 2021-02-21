@@ -2,10 +2,10 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 import pytorch_lightning as pl
-from models import TestNet, MLP
+from nn_classification.models import TestNet, MLP
 
 
-class LitAutoEncoder(pl.LightningModule):
+class LitClassifier(pl.LightningModule):
     def __init__(self, n_features, n_states, n_hidden_nodes=128, n_hidden_layers=2, lr=1e-3):
         super().__init__()
         # Inputs to hidden layer linear transformation
@@ -31,12 +31,3 @@ class LitAutoEncoder(pl.LightningModule):
         loss = self.criterion(outputs, labels)
         self.log('train_loss', loss)
         return loss
-
-    def validation_step(self, val_batch, batch_idx):
-        x, y = val_batch
-        x = x.view(x.size(0), -1)
-        z = self.encoder(x)
-        x_hat = self.decoder(z)
-        loss = F.mse_loss(x_hat, x)
-        self.log('val_loss', loss)
-

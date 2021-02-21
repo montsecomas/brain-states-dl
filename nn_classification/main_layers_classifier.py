@@ -41,7 +41,7 @@ if __name__ == '__main__':
             optimizer = optim.Adam(net.parameters(), lr=0.001)
             # optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9)
 
-            for epoch in range(1000):  # loop over the dataset multiple times
+            for epoch in range(5000):  # loop over the dataset multiple times
 
                 running_loss = 0.0
                 # data = next(iter(trainloader))
@@ -56,10 +56,9 @@ if __name__ == '__main__':
                     # forward + backward + optimize
                     outputs = net(inputs.float())
                     loss = criterion(outputs, labels)
-                    # print(loss.item())
+                    print(loss.item())
                     loss.backward()
                     optimizer.step()
-
 
             print('Finished Training')
 
