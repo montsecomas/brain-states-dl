@@ -21,7 +21,7 @@ def subject_nn_data(subject, healthy_subjects, pd_subjects, feature_name, data_p
 class EEGDataset(torch.utils.data.Dataset):
     def __init__(self, np_input, np_targets):
         self.np_input = torch.from_numpy(np_input)
-        self.np_targets = torch.from_numpy(np_targets)
+        self.np_targets = torch.from_numpy(np_targets).long()
 
     def __len__(self):
         return self.np_input.shape[0]
