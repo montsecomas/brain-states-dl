@@ -15,8 +15,11 @@ from datetime import datetime
 if __name__ == '__main__':
     cfg = load_cfg()
 
+    # for subject in [25]:
     for subject in cfg['healthy_subjects']:
-    # for subject in [26]:
+        print('------------------------------------\nSubject', subject,
+              '\n------------------------------------')
+    # subject = 25
         input_data, targets = subject_nn_data(subject,
                                               healthy_subjects=cfg['healthy_subjects'],
                                               pd_subjects=cfg['pd_subjects'],
@@ -25,7 +28,7 @@ if __name__ == '__main__':
                                               pd_dir=cfg['pd_dir'],
                                               healthy_dir=cfg['healthy_dir'])
 
-        n_freqs = 1
+        n_freqs = 3
         freqs = ['alpha', 'beta', 'gamma']
         for freq in np.arange(n_freqs):
             # train-val split
@@ -40,7 +43,8 @@ if __name__ == '__main__':
 
             # data loaders
             train_loader = DataLoader(train_data, batch_size=cfg['batch_size'], shuffle=True, num_workers=0)
-            val_loader = DataLoader(val_data, batch_size=cfg['batch_size'], shuffle=False, num_workers=0)
+            #val_loader = DataLoader(val_data, batch_size=cfg['batch_size'], shuffle=False, num_workers=0)
+            val_loader = DataLoader(val_data, batch_size=len(val_data), shuffle=False, num_workers=0)
 
             # model
             idx_hparams = {'n_features': input_data.shape[2],

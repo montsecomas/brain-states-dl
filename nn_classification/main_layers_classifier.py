@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from utils.utils import load_cfg
-from nn_classification.models import TestNet, MLP
+from nn_classification.models import TestNet
 from nn_classification.data_loaders import EEGDataset, subject_nn_data
 
 READ_MODEL = False

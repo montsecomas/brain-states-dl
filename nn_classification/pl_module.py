@@ -51,7 +51,7 @@ class LitClassifier(pl.LightningModule):
     @torch.no_grad()
     def compute_metrics(self, output, target):
         # TODO: parametrize num_classes/labels
-        # auc = torch.as_tensor(roc_auc_score(F.one_hot(target, num_classes=3).numpy(), F.softmax(output, dim=-1).numpy(),
-        #                                     average='macro', multi_class='ovr', labels=[0,1,2]))
-        return {'acc': 0}
+        auc = torch.as_tensor(roc_auc_score(target.numpy(), F.softmax(output, dim=-1).numpy(),
+                                            average='macro', multi_class='ovo', labels=[0, 1, 2]))
+        return {'auc': auc}
 
