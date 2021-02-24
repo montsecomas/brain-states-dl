@@ -26,7 +26,8 @@ if __name__ == '__main__':
                                               feature_name='pow_mean',
                                               data_path=cfg['data_path'],
                                               pd_dir=cfg['pd_dir'],
-                                              healthy_dir=cfg['healthy_dir'])
+                                              healthy_dir=cfg['healthy_dir'],
+                                              use_silent_channels=cfg['use_silent_channels'])
 
         n_freqs = 3
         freqs = ['alpha', 'beta', 'gamma']

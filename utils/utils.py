@@ -33,12 +33,12 @@ def subject_res_dir(subject_id, is_pd, data_path, pd_dir, healthy_dir):
         return osp.join(data_path, healthy_dir, f"res_subject_{subject_id}")
 
 
-def processed_data_path(subject_id, is_pd, classic_prepro, feature_name, data_path, pd_dir, healthy_dir):
+def processed_data_path(subject_id, is_pd, use_silent_channels, feature_name, data_path, pd_dir, healthy_dir):
     """
 
     :param subject_id: subject id
     :param is_pd: True or False
-    :param classic_prepro:
+    :param use_silent_channels:
     :param feature_name: values: 'pow_mean, pow_cov, pow_cor, ica_mean, ica_cov, ica_cor'
     :param data_path:
     :param pd_dir:
@@ -46,7 +46,7 @@ def processed_data_path(subject_id, is_pd, classic_prepro, feature_name, data_pa
     :return: string
     """
     output_path = subject_res_dir(subject_id, is_pd, data_path, pd_dir, healthy_dir)
-    sufix = '' if classic_prepro else '-all-channels'
+    sufix = '-all-channels' if use_silent_channels else ''
 
     if feature_name == 'pow_mean':
         return osp.join(output_path, f"freq-pow-mean-{subject_id}{sufix}.npy")
@@ -54,11 +54,11 @@ def processed_data_path(subject_id, is_pd, classic_prepro, feature_name, data_pa
         return osp.join(output_path, f"freq-pow-cov-{subject_id}.npy")
     elif feature_name == 'pow_cor':
         return osp.join(output_path, f"freq-pow-cor-{subject_id}.npy")
-    elif feature_name == 'ica_mean':
+    elif feature_name == 'ic_mean':
         return osp.join(output_path, f"freq-ica-mean-{subject_id}{sufix}.npy")
-    elif feature_name == 'ica_cov':
+    elif feature_name == 'ic_cov':
         return osp.join(output_path, f"freq-ica_cov-{subject_id}.npy")
-    elif feature_name == 'ica_cor':
+    elif feature_name == 'ic_cor':
         return osp.join(output_path, f"freq-ica-cor-{subject_id}.npy")
 
 

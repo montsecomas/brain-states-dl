@@ -4,7 +4,8 @@ from utils.utils import is_pd_patient, processed_data_path, processed_labels_pat
 from sklearn import preprocessing
 
 
-def subject_nn_data(subject, healthy_subjects, pd_subjects, feature_name, data_path, pd_dir, healthy_dir):
+def subject_nn_data(subject, healthy_subjects, pd_subjects, feature_name, data_path, pd_dir, healthy_dir,
+                    use_silent_channels=True):
     is_pd = is_pd_patient(subject, healthy_subjects, pd_subjects)
     input_data = np.load(processed_data_path(subject_id=subject, is_pd=is_pd, feature_name=feature_name,
                                              data_path=data_path, pd_dir=pd_dir, healthy_dir=healthy_dir))

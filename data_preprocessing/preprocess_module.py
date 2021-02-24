@@ -10,7 +10,7 @@ from utils.utils import raw_input_path, subject_res_dir
 
 
 class BrainStatesSubject:
-    def __init__(self, i_sub, PD, data_path, pd_dir, healthy_dir, subset='dataSorted', clean_channels=True):
+    def __init__(self, i_sub, PD, data_path, pd_dir, healthy_dir, subset='dataSorted', use_silent_channels=False):
         """
         The class works under the assumption that the raw data's dimensions are sorted as follows:
         (N_features, T_milliseconds, trials, x), where x:
@@ -22,7 +22,7 @@ class BrainStatesSubject:
         """
         self.i_sub = i_sub
         self.subset = subset
-        self.clean_channels = clean_channels
+        self.use_silent_channels = use_silent_channels
         self.N_MOTIV = 3
         self.PD = PD
         self.data_path = data_path
@@ -38,7 +38,13 @@ class BrainStatesSubject:
             subject_string = 'Healthy subject.'
         print('------------------------------------\nSubject', i_sub, '-', subject_string,
               '\n------------------------------------')
-        self.raw_data = sio.loadmat(self.input_path)[self.subset]
+        if self.subset == 'dataSorted':
+            self.raw_data = sio.loadmat(self.input_path)[self.subset]
+        elif self.subset == 'ica':
+            if self.PD:
+                self.raw_data = sio.loadmat(self.input_path)['ic_data']
+            else:
+                self.raw_data = sio.loadmat(self.input_path)['ic_data3']
 
     def run_pipeline(self):
         self._define_subject_dir()
@@ -91,10 +97,10 @@ class BrainStatesSubject:
             red_n = n
             subsets = [0, 0]
         else:
-            if self.clean_channels:
-                clean_channels, red_n = self._discard_channels(self.raw_data)
-            else:
+            if self.use_silent_channels:
                 clean_channels, red_n = self.raw_data, n
+            else:
+                clean_channels, red_n = self._discard_channels(self.raw_data)
             session1 = clean_channels[:, :, :, 0::2]
             session2 = clean_channels[:, :, :, 1::2]
             subsets = [session1, session2]
@@ -147,7 +153,7 @@ class BrainStatesSubject:
 
 
 class BrainStatesFeaturing:
-    def __init__(self, input_ts, input_labels, pd_sub, clean_channels=True):
+    def __init__(self, input_ts, input_labels, pd_sub, use_silent_channels=False):
         """
         Initizalize variables
         :param ts_data: dimensions (total_trials, t, red_n)
@@ -166,12 +172,13 @@ class BrainStatesFeaturing:
         self.n_bands = 3
         self.band_filter_order = 3
         self.bandpassed = self._filter_frequencies()
-        if clean_channels:
+        if not use_silent_channels:
             self.ini_eeg_f = self._build_cor_cov_mat()
         self.mask_tri = np.tri(self.n_raw_features, self.n_raw_features, -1, dtype=np.bool_)
 
     def _clean_undone_experiments(self):
-        invalid_exp = np.sum(np.sum(np.isnan(self.input_ts), axis=1), axis=1) == self.ms*self.n_raw_features
+        invalid_exp = np.sum(np.sum(np.logical_or(np.isnan(self.input_ts), (self.input_ts == 0)), axis=1),
+                             axis=1) == self.ms*self.n_raw_features
         valid_exp = np.logical_not(invalid_exp)
         print(np.sum(valid_exp), 'left observations out of', self.input_ts.shape[0])
 
