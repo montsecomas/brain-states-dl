@@ -29,8 +29,8 @@ if __name__ == '__main__':
                                               healthy_dir=cfg['healthy_dir'],
                                               use_silent_channels=cfg['use_silent_channels'])
 
-        n_freqs = 3
         freqs = ['alpha', 'beta', 'gamma']
+        n_freqs = len(freqs)
         for freq in np.arange(n_freqs):
             # train-val split
             indices = np.arange(input_data.shape[1])
@@ -52,7 +52,8 @@ if __name__ == '__main__':
                            'n_hidden_nodes': cfg['n_hidden_nodes'],
                            'n_hidden_layers': cfg['n_hidden_layers'],
                            'lr': cfg['lr']}
-            model = LitClassifier(hparams=idx_hparams, freq_name=freqs[freq], pred_feature=cfg['pred_feature'])
+            model = LitClassifier(hparams=idx_hparams, freq_name=freqs[freq], pred_feature=cfg['pred_feature'],
+                                  epochs=cfg['epochs'])
 
             # training
             prefix = 'POW_MEAN_' if (cfg['mat_dict'] == 'dataSorted') else 'IC_MEAN_'

@@ -8,13 +8,15 @@ from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionM
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import time
 
 
 class LitClassifier(pl.LightningModule):
-    def __init__(self, hparams, freq_name, pred_feature):
+    def __init__(self, hparams, freq_name, pred_feature, epochs):
         super().__init__()
         # Inputs to hidden layer linear transformation
         self.hparams = hparams
+        self.epochs = epochs
         self.freq_name = freq_name
         self.feature = 'pow' if pred_feature == 'pow_mean' else 'ic'
         self.mlp = MLP(input_dim=self.hparams['n_features'], hidden_dim=self.hparams['n_hidden_nodes'],
@@ -71,22 +73,23 @@ class LitClassifier(pl.LightningModule):
         return {'auc': auc}
 
     def validation_epoch_end(self, outputs):
-        num_classes = 3
-        preds = torch.cat([tmp['preds'] for tmp in outputs])
-        targets = torch.cat([tmp['target'] for tmp in outputs])
-        cf = ConfusionMatrix(num_classes=num_classes)
-        confusion_matrix = cf(F.softmax(preds, dim=-1), targets)
+        if self.current_epoch in map(int, [self.epochs/self.epochs, self.epochs/(self.epochs/2), self.epochs-1]):
+            num_classes = 3
+            preds = torch.cat([tmp['preds'] for tmp in outputs])
+            targets = torch.cat([tmp['target'] for tmp in outputs])
+            cf = ConfusionMatrix(num_classes=num_classes)
+            confusion_matrix = cf(F.softmax(preds, dim=-1), targets)
 
-        df_cm = pd.DataFrame(confusion_matrix.numpy(), index=range(num_classes), columns=range(num_classes))
-        plt.figure(figsize=(25, 18))
-        plt.rcParams['font.size'] = 40
-        fig_ = sns.heatmap(df_cm, annot=False, cmap=self.cmap).get_figure()
-        plt.title(f'{self.freq_name}, {self.feature}', fontsize=50)
-        plt.xlabel('True label', fontsize=50)
-        plt.ylabel('Predicted label', fontsize=50)
-        plt.close(fig_)
+            df_cm = pd.DataFrame(confusion_matrix.numpy(), index=range(num_classes), columns=range(num_classes))
+            plt.figure(figsize=(25, 18))
+            plt.rcParams['font.size'] = 40
+            fig_ = sns.heatmap(df_cm, annot=False, cmap=self.cmap).get_figure()
+            plt.title(f'{self.freq_name}, {self.feature}', fontsize=50)
+            plt.xlabel('True label', fontsize=50)
+            plt.ylabel('Predicted label', fontsize=50)
+            plt.close(fig_)
 
-        self.logger.experiment.add_figure("Confusion matrix", fig_, self.current_epoch)
+            self.logger.experiment.add_figure("Confusion matrix", fig_, self.current_epoch)
 
 
 
