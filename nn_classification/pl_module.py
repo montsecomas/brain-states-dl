@@ -11,10 +11,12 @@ import seaborn as sns
 
 
 class LitClassifier(pl.LightningModule):
-    def __init__(self, hparams, freq_name):
+    def __init__(self, hparams, freq_name, pred_feature):
         super().__init__()
         # Inputs to hidden layer linear transformation
         self.hparams = hparams
+        self.freq_name = freq_name
+        self.feature = 'pow' if pred_feature == 'pow_mean' else 'ic'
         self.mlp = MLP(input_dim=self.hparams['n_features'], hidden_dim=self.hparams['n_hidden_nodes'],
                        output_dim=self.hparams['n_states'], num_layers=self.hparams['n_hidden_layers'])
 
@@ -79,6 +81,9 @@ class LitClassifier(pl.LightningModule):
         plt.figure(figsize=(25, 18))
         plt.rcParams['font.size'] = 40
         fig_ = sns.heatmap(df_cm, annot=False, cmap=self.cmap).get_figure()
+        plt.title(f'{self.freq_name}, {self.feature}', fontsize=50)
+        plt.xlabel('True label', fontsize=50)
+        plt.ylabel('Predicted label', fontsize=50)
         plt.close(fig_)
 
         self.logger.experiment.add_figure("Confusion matrix", fig_, self.current_epoch)

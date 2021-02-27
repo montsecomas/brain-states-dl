@@ -30,8 +30,7 @@ if __name__ == '__main__':
                                               use_silent_channels=cfg['use_silent_channels'])
 
         n_freqs = 3
-        # freqs = ['alpha', 'beta', 'gamma']
-        freqs = ['alpha']
+        freqs = ['alpha', 'beta', 'gamma']
         for freq in np.arange(n_freqs):
             # train-val split
             indices = np.arange(input_data.shape[1])
@@ -45,7 +44,6 @@ if __name__ == '__main__':
 
             # data loaders
             train_loader = DataLoader(train_data, batch_size=cfg['batch_size'], shuffle=True, num_workers=0)
-            #val_loader = DataLoader(val_data, batch_size=cfg['batch_size'], shuffle=False, num_workers=0)
             val_loader = DataLoader(val_data, batch_size=len(val_data), shuffle=False, num_workers=0)
 
             # model
@@ -54,10 +52,10 @@ if __name__ == '__main__':
                            'n_hidden_nodes': cfg['n_hidden_nodes'],
                            'n_hidden_layers': cfg['n_hidden_layers'],
                            'lr': cfg['lr']}
-            model = LitClassifier(hparams=idx_hparams, freq_name=freqs[freq])
+            model = LitClassifier(hparams=idx_hparams, freq_name=freqs[freq], pred_feature=cfg['pred_feature'])
 
             # training
-            prefix = 'pow_' if (cfg['mat_dict'] == 'dataSorted') else 'ic_'
+            prefix = 'POW_MEAN_' if (cfg['mat_dict'] == 'dataSorted') else 'IC_MEAN_'
             logger = TensorBoardLogger(save_dir=cfg['experiments_dir'],
                                        name=f"subject-{subject}-freq_{freqs[freq]}",
                                        version=f"{prefix}{datetime.now().strftime('%Y-%m-%d_%H%M')}")
