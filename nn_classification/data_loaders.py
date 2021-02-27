@@ -7,13 +7,13 @@ from sklearn import preprocessing
 def subject_nn_data(subject, healthy_subjects, pd_subjects, feature_name, data_path, pd_dir, healthy_dir,
                     use_silent_channels=True):
     is_pd = is_pd_patient(subject, healthy_subjects, pd_subjects)
-    input_data = np.load(processed_data_path(subject_id=subject, is_pd=is_pd, feature_name=feature_name,
-                                             data_path=data_path, pd_dir=pd_dir, healthy_dir=healthy_dir))
+    input_data = np.load(processed_data_path(subject_id=subject, is_pd=is_pd, use_silent_channels=use_silent_channels,
+                                             feature_name=feature_name, data_path=data_path, pd_dir=pd_dir,
+                                             healthy_dir=healthy_dir))
     np_labels = np.load(processed_labels_path(subject_id=subject, is_pd=is_pd, data_path=data_path,
                                               pd_dir=pd_dir, healthy_dir=healthy_dir))
     le = preprocessing.LabelEncoder()
     le.fit(np_labels[:, 1])
-    # le.classes_
     targets = le.transform(np_labels[:, 1])
 
     return input_data, targets

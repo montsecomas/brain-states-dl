@@ -23,14 +23,15 @@ if __name__ == '__main__':
         input_data, targets = subject_nn_data(subject,
                                               healthy_subjects=cfg['healthy_subjects'],
                                               pd_subjects=cfg['pd_subjects'],
-                                              feature_name='pow_mean',
+                                              feature_name=cfg['pred_feature'],
                                               data_path=cfg['data_path'],
                                               pd_dir=cfg['pd_dir'],
                                               healthy_dir=cfg['healthy_dir'],
                                               use_silent_channels=cfg['use_silent_channels'])
 
         n_freqs = 3
-        freqs = ['alpha', 'beta', 'gamma']
+        # freqs = ['alpha', 'beta', 'gamma']
+        freqs = ['alpha']
         for freq in np.arange(n_freqs):
             # train-val split
             indices = np.arange(input_data.shape[1])
@@ -53,12 +54,13 @@ if __name__ == '__main__':
                            'n_hidden_nodes': cfg['n_hidden_nodes'],
                            'n_hidden_layers': cfg['n_hidden_layers'],
                            'lr': cfg['lr']}
-            model = LitClassifier(hparams=idx_hparams)
+            model = LitClassifier(hparams=idx_hparams, freq_name=freqs[freq])
 
             # training
+            prefix = 'pow_' if (cfg['mat_dict'] == 'dataSorted') else 'ic_'
             logger = TensorBoardLogger(save_dir=cfg['experiments_dir'],
                                        name=f"subject-{subject}-freq_{freqs[freq]}",
-                                       version=f"{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+                                       version=f"{prefix}{datetime.now().strftime('%Y-%m-%d_%H%M')}")
             trainer = pl.Trainer(max_epochs=cfg['epochs'],
                                  logger=logger)
             trainer.fit(model, train_loader, val_loader)

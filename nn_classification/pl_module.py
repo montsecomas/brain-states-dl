@@ -4,10 +4,14 @@ from torch.nn import functional as F
 import pytorch_lightning as pl
 from nn_classification.models import MLP
 from sklearn.metrics import roc_auc_score
+from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 class LitClassifier(pl.LightningModule):
-    def __init__(self, hparams):
+    def __init__(self, hparams, freq_name):
         super().__init__()
         # Inputs to hidden layer linear transformation
         self.hparams = hparams
@@ -17,6 +21,12 @@ class LitClassifier(pl.LightningModule):
         # Define sigmoid activation and loss criterion
         self.relu = F.relu
         self.criterion = nn.CrossEntropyLoss()
+        if freq_name == 'alpha':
+            self.cmap = 'Greens'
+        elif freq_name == 'beta':
+            self.cmap = 'Blues'
+        elif freq_name == 'gamma':
+            self.cmap = 'Reds'
 
     def forward(self, x):
         # Pass the input tensor through each of our operations
@@ -38,9 +48,12 @@ class LitClassifier(pl.LightningModule):
 
         metrics = self.compute_metrics(outputs, labels)
         self.log_metrics({**metrics, 'loss': loss}, trainval=trainval)
+        # self.log('Confusion matrix', ConfusionMatrix(F.softmax(output, dim=-1), labels, num_classes = 3))
 
         if trainval == 'train':
             return loss
+        else:
+            return {'loss': loss, 'preds': outputs, 'target': labels}
 
     def training_step(self, batch, batch_idx):
         return self.trainval_step(batch, batch_idx, trainval='train')
@@ -54,4 +67,21 @@ class LitClassifier(pl.LightningModule):
         auc = torch.as_tensor(roc_auc_score(target.numpy(), F.softmax(output, dim=-1).numpy(),
                                             average='macro', multi_class='ovo', labels=[0, 1, 2]))
         return {'auc': auc}
+
+    def validation_epoch_end(self, outputs):
+        num_classes = 3
+        preds = torch.cat([tmp['preds'] for tmp in outputs])
+        targets = torch.cat([tmp['target'] for tmp in outputs])
+        cf = ConfusionMatrix(num_classes=num_classes)
+        confusion_matrix = cf(F.softmax(preds, dim=-1), targets)
+
+        df_cm = pd.DataFrame(confusion_matrix.numpy(), index=range(num_classes), columns=range(num_classes))
+        plt.figure(figsize=(25, 18))
+        plt.rcParams['font.size'] = 40
+        fig_ = sns.heatmap(df_cm, annot=False, cmap=self.cmap).get_figure()
+        plt.close(fig_)
+
+        self.logger.experiment.add_figure("Confusion matrix", fig_, self.current_epoch)
+
+
 

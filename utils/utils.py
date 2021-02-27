@@ -55,7 +55,7 @@ def processed_data_path(subject_id, is_pd, use_silent_channels, feature_name, da
     elif feature_name == 'pow_cor':
         return osp.join(output_path, f"freq-pow-cor-{subject_id}.npy")
     elif feature_name == 'ic_mean':
-        return osp.join(output_path, f"freq-ica-mean-{subject_id}{sufix}.npy")
+        return osp.join(output_path, f"freq-ica-mean-{subject_id}.npy")
     elif feature_name == 'ic_cov':
         return osp.join(output_path, f"freq-ica_cov-{subject_id}.npy")
     elif feature_name == 'ic_cor':
