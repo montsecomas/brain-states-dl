@@ -35,7 +35,7 @@ if __name__ == '__main__':
                                                        use_silent_channels=cfg['use_silent_channels'],
                                                        mask_value=cfg['mask_value'])
 
-    freqs = ['gamma']
+    freqs = ['alpha', 'beta', 'gamma']
     n_freqs = len(freqs)
     for freq in np.arange(n_freqs):
         test_data = EEGDataset(np_input=input_data[freq, :, :], np_targets=targets)
@@ -44,7 +44,7 @@ if __name__ == '__main__':
         val_loader = DataLoader(test_data, batch_size=len(test_data), shuffle=False, num_workers=0)
 
         ###
-        #args.ckpt_path= 'mlp_lightning_logs/subject-25-freq_gamma/POW-MEAN_2021-02-28_2014_ALL-CHANNELS_MASK-mean/checkpoints/epoch=499-step=9499.ckpt'
+        args.ckpt_path= 'mlp_lightning_logs/subject-25-freq_gamma/POW-MEAN_2021-02-28_2014_ALL-CHANNELS_MASK-mean/checkpoints/epoch=499-step=9499.ckpt'
         ckpt = torch.load(args.ckpt_path)
         ckpt.keys()
         model = LitClassifier(hparams=ckpt['hyper_parameters'], freq_name=freqs[freq],
@@ -57,6 +57,7 @@ if __name__ == '__main__':
         inputs, targets = batch
         with torch.no_grad():
             preds = model(inputs.float())
+            model.compute_metrics(preds, targets)
 
         # list_of_samples= [test_data[ix] for ix in [1, 3, 5, 2]]
         # batch = val_loader.collate_fn(list_of_samples)
