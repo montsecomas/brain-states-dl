@@ -1,8 +1,8 @@
 data_path: 'data'
 pd_dir: 'pd_sb'
 healthy_dir: 'healthy_sb'
-mat_dict: 'ica' # ica or dataSorted
-use_silent_channels: False
+mat_dict: 'dataSorted' # ica or dataSorted
+use_silent_channels: True
 pd_subjects: []
 healthy_subjects : [25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]
 batch_size: 64
@@ -11,4 +11,6 @@ n_hidden_layers: 2
 lr: 0.001
 epochs: 500
 experiments_dir : 'mlp_lightning_logs'
-pred_feature : 'ic_mean' # ic_mean or pow_mean
+crossval_dir: 'mlp_crossval_logs'
+pred_feature: 'pow_mean' # ic_mean or pow_mean
+mask_value: 'mean' # '-1', 'mean' or None

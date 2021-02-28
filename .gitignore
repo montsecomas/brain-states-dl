@@ -9,6 +9,7 @@
 # Distribution / packaging
 .vscode
 mlp_lightning_logs/
+mlp_crossval_logs/
 .DS_Store
 .idea
 .Python

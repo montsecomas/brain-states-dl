@@ -20,14 +20,15 @@ if __name__ == '__main__':
         print('------------------------------------\nSubject', subject,
               '\n------------------------------------')
     # subject = 25
-        input_data, targets = subject_nn_data(subject,
-                                              healthy_subjects=cfg['healthy_subjects'],
-                                              pd_subjects=cfg['pd_subjects'],
-                                              feature_name=cfg['pred_feature'],
-                                              data_path=cfg['data_path'],
-                                              pd_dir=cfg['pd_dir'],
-                                              healthy_dir=cfg['healthy_dir'],
-                                              use_silent_channels=cfg['use_silent_channels'])
+        input_data, targets, long_labels = subject_nn_data(subject,
+                                                           healthy_subjects=cfg['healthy_subjects'],
+                                                           pd_subjects=cfg['pd_subjects'],
+                                                           feature_name=cfg['pred_feature'],
+                                                           data_path=cfg['data_path'],
+                                                           pd_dir=cfg['pd_dir'],
+                                                           healthy_dir=cfg['healthy_dir'],
+                                                           use_silent_channels=cfg['use_silent_channels'],
+                                                           mask_value=cfg['mask_value'])
 
         freqs = ['alpha', 'beta', 'gamma']
         n_freqs = len(freqs)
@@ -56,10 +57,13 @@ if __name__ == '__main__':
                                   epochs=cfg['epochs'])
 
             # training
-            prefix = 'POW_MEAN_' if (cfg['mat_dict'] == 'dataSorted') else 'IC_MEAN_'
+            prefix = 'POW-MEAN' if (cfg['mat_dict'] == 'dataSorted') else 'IC-MEAN'
+            sufix = 'ALL-CHANNELS' if cfg['use_silent_channels'] else ''
+            mask = f"MASK-{cfg['mask_value']}" \
+                if (cfg['use_silent_channels'] and (cfg['mask_value'] is not None)) else ''
             logger = TensorBoardLogger(save_dir=cfg['experiments_dir'],
                                        name=f"subject-{subject}-freq_{freqs[freq]}",
-                                       version=f"{prefix}{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+                                       version=f"{prefix}_{datetime.now().strftime('%Y-%m-%d_%H%M')}_{sufix}_{mask}")
             trainer = pl.Trainer(max_epochs=cfg['epochs'],
                                  logger=logger)
             trainer.fit(model, train_loader, val_loader)
