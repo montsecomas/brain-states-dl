@@ -19,6 +19,8 @@ def subject_nn_data(subject, healthy_subjects, pd_subjects, feature_name, data_p
     if use_silent_channels:
         if mask_value == '-1':
             input_data[np.isnan(input_data)] = float(-1)
+        if mask_value == '0':
+            input_data[np.isnan(input_data)] = float(0)
         elif mask_value == 'mean':
             inds = np.where(np.isnan(input_data))
             dim_means = np.nanmean(input_data, axis=2)

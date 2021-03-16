@@ -10,6 +10,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from utils.utils import load_cfg
 import numpy as np
 from datetime import datetime
+import os.path as osp
 
 
 if __name__ == '__main__':
@@ -31,8 +32,9 @@ if __name__ == '__main__':
                                                            mask_value=cfg['mask_value'])
 
         freqs = ['alpha', 'beta', 'gamma']
-        n_freqs = len(freqs)
-        for freq in np.arange(n_freqs):
+        freqs_idx = [0, 1, 2]
+        # freq = 0
+        for freq in freqs_idx:
             # train-val split
             indices = np.arange(input_data.shape[1])
             np.random.shuffle(indices)
@@ -52,16 +54,23 @@ if __name__ == '__main__':
                            'n_states': len(np.unique(targets)),
                            'n_hidden_nodes': cfg['n_hidden_nodes'],
                            'n_hidden_layers': cfg['n_hidden_layers'],
-                           'lr': cfg['lr']}
-            model = LitClassifier(hparams=idx_hparams, freq_name=freqs[freq], pred_feature=cfg['pred_feature'],
-                                  epochs=cfg['epochs'])
+                           'lr': cfg['lr'],
+                           'epochs': cfg['epochs'],
+                           'freq_name': freqs[freq],
+                           'pred_feature': cfg['pred_feature'],
+                           'input_dropout': None,
+                           'mlp_dropout': None,
+                           'weight_decay': cfg['weight_decay'],
+                           'num_classes': 3}
+
+            model = LitClassifier(hparams=idx_hparams)
 
             # training
             prefix = 'POW-MEAN' if (cfg['mat_dict'] == 'dataSorted') else 'IC-MEAN'
             sufix = 'ALL-CHANNELS' if cfg['use_silent_channels'] else ''
             mask = f"MASK-{cfg['mask_value']}" \
                 if (cfg['use_silent_channels'] and (cfg['mask_value'] is not None)) else ''
-            logger = TensorBoardLogger(save_dir=cfg['experiments_dir'],
+            logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], cfg['experiments_fol']),
                                        name=f"subject-{subject}-freq_{freqs[freq]}",
                                        version=f"{prefix}_{datetime.now().strftime('%Y-%m-%d_%H%M')}_{sufix}_{mask}")
             trainer = pl.Trainer(max_epochs=cfg['epochs'],

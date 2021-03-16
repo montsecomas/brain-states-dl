@@ -5,12 +5,14 @@ mat_dict: 'dataSorted' # ica or dataSorted
 use_silent_channels: True
 pd_subjects: []
 healthy_subjects : [25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]
-batch_size: 64
+batch_size: 128
 n_hidden_nodes : 128
 n_hidden_layers: 2
 lr: 0.001
-epochs: 500
-experiments_dir : 'mlp_lightning_logs'
-crossval_dir: 'mlp_crossval_logs'
+epochs: 100
+input_dropout: 0.2 # >0 or None
+mlp_dropout: # >0 or None
+weight_decay: # >0 or None
+experiments_dir : 'exp_logs_crossval'
 pred_feature: 'pow_mean' # ic_mean or pow_mean
-mask_value: 'mean' # '-1', 'mean' or None
+mask_value: '0' # '-1', '0', 'mean' or None

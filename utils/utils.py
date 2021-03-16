@@ -33,7 +33,8 @@ def subject_res_dir(subject_id, is_pd, data_path, pd_dir, healthy_dir):
         return osp.join(data_path, healthy_dir, f"res_subject_{subject_id}")
 
 
-def processed_data_path(subject_id, is_pd, use_silent_channels, feature_name, data_path, pd_dir, healthy_dir):
+def processed_data_path(subject_id, is_pd, data_path, pd_dir, healthy_dir,
+                        use_silent_channels=None, feature_name=None, conv=False):
     """
 
     :param subject_id: subject id
@@ -46,20 +47,23 @@ def processed_data_path(subject_id, is_pd, use_silent_channels, feature_name, da
     :return: string
     """
     output_path = subject_res_dir(subject_id, is_pd, data_path, pd_dir, healthy_dir)
-    sufix = '-all-channels' if use_silent_channels else ''
+    if conv:
+        return osp.join(output_path, f"raw-freqs-{subject_id}.npy")
+    else:
+        sufix = '-all-channels' if use_silent_channels else ''
 
-    if feature_name == 'pow_mean':
-        return osp.join(output_path, f"freq-pow-mean-{subject_id}{sufix}.npy")
-    elif feature_name == 'pow_cov':
-        return osp.join(output_path, f"freq-pow-cov-{subject_id}.npy")
-    elif feature_name == 'pow_cor':
-        return osp.join(output_path, f"freq-pow-cor-{subject_id}.npy")
-    elif feature_name == 'ic_mean':
-        return osp.join(output_path, f"freq-ica-mean-{subject_id}.npy")
-    elif feature_name == 'ic_cov':
-        return osp.join(output_path, f"freq-ica_cov-{subject_id}.npy")
-    elif feature_name == 'ic_cor':
-        return osp.join(output_path, f"freq-ica-cor-{subject_id}.npy")
+        if feature_name == 'pow_mean':
+            return osp.join(output_path, f"freq-pow-mean-{subject_id}{sufix}.npy")
+        elif feature_name == 'pow_cov':
+            return osp.join(output_path, f"freq-pow-cov-{subject_id}.npy")
+        elif feature_name == 'pow_cor':
+            return osp.join(output_path, f"freq-pow-cor-{subject_id}.npy")
+        elif feature_name == 'ic_mean':
+            return osp.join(output_path, f"freq-ica-mean-{subject_id}.npy")
+        elif feature_name == 'ic_cov':
+            return osp.join(output_path, f"freq-ica_cov-{subject_id}.npy")
+        elif feature_name == 'ic_cor':
+            return osp.join(output_path, f"freq-ica-cor-{subject_id}.npy")
 
 
 def processed_labels_path(subject_id, is_pd, data_path, pd_dir, healthy_dir):

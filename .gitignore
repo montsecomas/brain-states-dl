@@ -8,8 +8,8 @@
 
 # Distribution / packaging
 .vscode
-mlp_lightning_logs/
-mlp_crossval_logs/
+exp_logs_subject/
+exp_logs_crossval/
 .DS_Store
 .idea
 .Python

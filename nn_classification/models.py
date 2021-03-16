@@ -33,14 +33,19 @@ class TestNet(nn.Module):
 
 class MLP(nn.Module):
     """ Very simple multi-layer perceptron (also called FFN)"""
-    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, relu_last=False):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, dropout, on_last=False):
         super().__init__()
-        self.relu_last=relu_last
+        self.on_last = on_last
+        self.dropout = dropout
         self.num_layers = num_layers
         h = [hidden_dim] * (num_layers - 1)
         self.layers = nn.ModuleList(nn.Linear(n, k) for n, k in zip([input_dim] + h, h + [output_dim]))
 
     def forward(self, x):
-        for i, layer in enumerate(self.layers):
-            x = F.relu(layer(x)) if i < self.num_layers - 1 or self.relu_last else layer(x)
+        if self.dropout is not None:
+            for i, layer in enumerate(self.layers):
+                x = F.relu(layer(F.dropout(x, self.dropout))) if i < self.num_layers - 1 or self.on_last else layer(x)
+        else:
+            for i, layer in enumerate(self.layers):
+                x = F.relu(layer(x)) if i < self.num_layers - 1 or self.on_last else layer(x)
         return x

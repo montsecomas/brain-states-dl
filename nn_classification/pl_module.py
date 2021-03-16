@@ -12,33 +12,41 @@ import time
 
 
 class LitClassifier(pl.LightningModule):
-    def __init__(self, hparams, freq_name, pred_feature, epochs):
+    def __init__(self, hparams):
         super().__init__()
         # Inputs to hidden layer linear transformation
         self.hparams = hparams
-        self.epochs = epochs
-        self.freq_name = freq_name
-        self.feature = 'pow' if pred_feature == 'pow_mean' else 'ic'
+        self.num_classes = self.hparams['num_classes']
+        self.epochs = self.hparams['epochs']
+        self.freq_name = self.hparams['freq_name']
+        self.pred_feature = self.hparams['pred_feature']
+        self.weight_decay = self.hparams['weight_decay'] if self.hparams['weight_decay'] is not None else 0
+        self.input_dropout = self.hparams['input_dropout']
+        self.mlp_dropout = self.hparams['mlp_dropout']
+        self.feature = 'pow' if self.pred_feature == 'pow_mean' else 'ic'
         self.mlp = MLP(input_dim=self.hparams['n_features'], hidden_dim=self.hparams['n_hidden_nodes'],
-                       output_dim=self.hparams['n_states'], num_layers=self.hparams['n_hidden_layers'])
+                       output_dim=self.hparams['n_states'], num_layers=self.hparams['n_hidden_layers'],
+                       dropout=self.mlp_dropout)
 
         # Define sigmoid activation and loss criterion
         self.relu = F.relu
         self.criterion = nn.CrossEntropyLoss()
-        if freq_name == 'alpha':
+        if self.freq_name == 'alpha':
             self.cmap = 'Greens'
-        elif freq_name == 'beta':
+        elif self.freq_name == 'beta':
             self.cmap = 'Blues'
-        elif freq_name == 'gamma':
+        elif self.freq_name == 'gamma':
             self.cmap = 'Reds'
 
     def forward(self, x):
         # Pass the input tensor through each of our operations
+        if self.input_dropout is not None:
+            x = F.dropout(x, self.input_dropout)
         x = self.mlp(x)
         return x
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams['lr'])
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams['lr'], weight_decay=self.weight_decay)
         return optimizer
 
     def log_metrics(self, metrics, trainval='train'):
@@ -74,19 +82,19 @@ class LitClassifier(pl.LightningModule):
 
     def validation_epoch_end(self, outputs):
         if self.current_epoch in map(int, [self.epochs/self.epochs, self.epochs/(self.epochs/2), self.epochs-1]):
-            num_classes = 3
             preds = torch.cat([tmp['preds'] for tmp in outputs])
             targets = torch.cat([tmp['target'] for tmp in outputs])
-            cf = ConfusionMatrix(num_classes=num_classes)
+            cf = ConfusionMatrix(num_classes=self.num_classes, normalize='true')
             confusion_matrix = cf(F.softmax(preds, dim=-1), targets)
 
-            df_cm = pd.DataFrame(confusion_matrix.numpy(), index=range(num_classes), columns=range(num_classes))
+            df_cm = pd.DataFrame(confusion_matrix.numpy(), index=range(self.num_classes),
+                                 columns=range(self.num_classes))
             plt.figure(figsize=(25, 18))
             plt.rcParams['font.size'] = 40
-            fig_ = sns.heatmap(df_cm, annot=False, cmap=self.cmap).get_figure()
+            fig_ = sns.heatmap(df_cm, annot=True, cmap=self.cmap).get_figure()
             plt.title(f'{self.freq_name}, {self.feature}', fontsize=50)
-            plt.xlabel('True label', fontsize=50)
-            plt.ylabel('Predicted label', fontsize=50)
+            plt.xlabel('Predicted label', fontsize=50)
+            plt.ylabel('True label', fontsize=50)
             plt.close(fig_)
 
             self.logger.experiment.add_figure("Confusion matrix", fig_, self.current_epoch)
