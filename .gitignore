@@ -8,8 +8,7 @@
 
 # Distribution / packaging
 .vscode
-exp_logs_subject/
-exp_logs_crossval/
+exp_logs_*/
 .DS_Store
 .idea
 .Python

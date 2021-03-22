@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 from utils.utils import load_cfg
 from nn_classification.models import TestNet
-from nn_classification.data_loaders import EEGDataset, subject_nn_data
+from nn_classification.data_loaders import FlatEEGDataset, subject_nn_data
 
 READ_MODEL = False
 MAKE_PRED = False
@@ -33,7 +33,7 @@ if __name__ == '__main__':
             bs = 64
             net = TestNet(n_features=input_data.shape[2], n_states=len(np.unique(targets)),
                           n_hidden_nodes_1=256, n_hidden_nodes_2=128)
-            train_data = EEGDataset(np_input=input_data[freq, :, :], np_targets=targets)
+            train_data = FlatEEGDataset(np_input=input_data[freq, :, :], np_targets=targets)
             trainloader = torch.utils.data.DataLoader(train_data,
                                                       batch_size=bs, shuffle=True, num_workers=0)
             # Define loss function and optimizer

@@ -1,0 +1,95 @@
+import sys
+sys.path.append('/Users/mcomastu/TFM/brain-states-dl') # TODO: remove this first two lines
+
+
+import pytorch_lightning as pl
+from torch.utils.data import DataLoader
+from nn_classification.data_loaders import FullEEGDataset, subject_nn_data
+from nn_classification.pl_module import LitConvClassifier
+from pytorch_lightning.loggers import TensorBoardLogger
+from utils.utils import load_cfg
+import numpy as np
+from datetime import datetime
+import os.path as osp
+
+
+if __name__ == '__main__':
+    cfg = load_cfg()
+
+    subject = 25
+    input_data, targets, long_labels = subject_nn_data(subject,
+                                                       healthy_subjects=cfg['healthy_subjects'],
+                                                       pd_subjects=cfg['pd_subjects'],
+                                                       feature_name=cfg['pred_feature'],
+                                                       data_path=cfg['data_path'],
+                                                       pd_dir=cfg['pd_dir'],
+                                                       healthy_dir=cfg['healthy_dir'],
+                                                       use_silent_channels=True,
+                                                       mask_value='0',
+                                                       conv=True)
+
+    # train-val split
+    indices = np.arange(input_data.shape[1])
+    np.random.shuffle(indices)
+    split_idx = int(input_data.shape[1]*0.9)
+
+    train_data = FullEEGDataset(np_input=input_data[indices[:split_idx], :, :],
+                                np_targets=targets[indices[:split_idx]])
+    val_data = FullEEGDataset(np_input=input_data[indices[split_idx:], :, :],
+                              np_targets=targets[indices[split_idx:]])
+
+    # data loaders
+    train_loader = DataLoader(train_data, batch_size=cfg['batch_size'], shuffle=True, num_workers=0)
+    val_loader = DataLoader(val_data, batch_size=len(val_data), shuffle=False, num_workers=0)
+
+    # model
+    idx_hparams = {'input_channels': input_data.shape[1],
+                   'kernel_size': 8,
+                   'n_states': len(np.unique(targets)),
+                   'lr': cfg['lr'],
+                   'epochs': cfg['epochs'],
+                   'input_dropout': None,
+                   'num_classes': 3}
+
+    model = LitConvClassifier(hparams=idx_hparams)
+
+    for batch in train_loader:
+        break
+
+    batch=next(iter(train_loader))
+
+    inputs, targets  = batch
+
+    inputs.shape
+
+    from torch.nn import functional as F
+    import torch
+
+    x = inputs.float().clone()
+    self = model
+
+    assert x.dim() == 3, f"Expected 3 dims: B, Electrodes, ms, got : {x.shape}"
+    with torch.no_grad():
+        # Pass the input tensor through each of our operations
+        if self.input_dropout is not None:
+            x = F.dropout(x, self.input_dropout)
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+
+        # x.shape
+        x = F.relu(self.global_avg_pooling(x))
+        x = self.fc2(x)
+
+
+"""    def global_avg_pooling(self, x):
+        return torch.mean(x, dim=2)"""
+
+"""    output_dir = osp.join(cfg['experiments_dir'], f"conv_iter0_bs{cfg['batch_size']}")
+    logger = TensorBoardLogger(save_dir=output_dir,
+                               name=f"sub{subject}",
+                               version=f"{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+
+    trainer = pl.Trainer(max_epochs=cfg['epochs'],
+                         logger=logger)
+    trainer.fit(model, train_loader, val_loader)"""
