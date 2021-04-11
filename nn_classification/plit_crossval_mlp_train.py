@@ -37,7 +37,8 @@ def main(cfg):
     targets = np.concatenate(all_targets)
     subject_ids = np.concatenate(subject_ids)
 
-    for val_id in cfg['healthy_subjects']:
+    # for val_id in cfg['healthy_subjects']:
+    for val_id in [25, 26]:
         # val_id = 25
         # for val_id in cfg['healthy_subjects']:
         print('------------------------------------\nCrossvalidation. Val with subject ', val_id,
@@ -78,14 +79,10 @@ def main(cfg):
 
             # training
             prefix = 'pow-mean'
-            mask = f"mask{cfg['mask_value']}"
-            i_dp = f"i-drop{cfg['input_dropout']}_" if cfg['input_dropout'] is not None else ''
-            mlp_dp = f"mlp-drop{cfg['mlp_dropout']}_" if cfg['mlp_dropout'] is not None else ''
-            reg = f"reg{cfg['weight_decay']}_" if cfg['weight_decay'] is not None else ''
-            output_dir = osp.join(cfg['experiments_dir'], f"mlp_{i_dp}{mlp_dp}{reg}bs{cfg['batch_size']}")
-            logger = TensorBoardLogger(save_dir=output_dir,
-                                       name=f"sub{val_id}-{freqs[freq]}_{prefix}_{mask}",
-                                       version=f"{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+            logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{val_id}"),
+                                       name=f"freq-{freqs[freq]}-crossval",
+                                       version=f"{prefix}_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+
             trainer = pl.Trainer(max_epochs=cfg['epochs'],
                                  logger=logger)
             trainer.fit(model, train_loader, val_loader)

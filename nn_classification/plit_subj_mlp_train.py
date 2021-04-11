@@ -57,21 +57,18 @@ def main(cfg):
                            'epochs': cfg['epochs'],
                            'freq_name': freqs[freq],
                            'pred_feature': cfg['pred_feature'],
-                           'input_dropout': None,
-                           'mlp_dropout': None,
+                           'input_dropout': cfg['input_dropout'],
+                           'mlp_dropout': cfg['mlp_dropout'],
                            'weight_decay': cfg['weight_decay'],
                            'num_classes': 3}
 
             model = LitMlpClassifier(hparams=idx_hparams)
 
             # training
-            prefix = 'POW-MEAN' if (cfg['mat_dict'] == 'dataSorted') else 'IC-MEAN'
-            sufix = 'ALL-CHANNELS' if cfg['use_silent_channels'] else ''
-            mask = f"MASK-{cfg['mask_value']}" \
-                if (cfg['use_silent_channels'] and (cfg['mask_value'] is not None)) else ''
-            logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], cfg['experiments_fol']),
-                                       name=f"subject-{subject}-freq_{freqs[freq]}",
-                                       version=f"{prefix}_{datetime.now().strftime('%Y-%m-%d_%H%M')}_{sufix}_{mask}")
+            prefix = 'pow-mean' if (cfg['mat_dict'] == 'dataSorted') else 'IC-MEAN'
+            logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{subject}"),
+                                       name=f"freq-{freqs[freq]}-single_subject",
+                                       version=f"{prefix}_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
             trainer = pl.Trainer(max_epochs=cfg['epochs'],
                                  logger=logger)
             trainer.fit(model, train_loader, val_loader)
