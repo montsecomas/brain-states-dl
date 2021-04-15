@@ -7,6 +7,7 @@ import numpy as np
 import scipy.io as sio
 import itertools
 from utils.utils import raw_input_path, subject_res_dir
+from scipy.ndimage import gaussian_filter
 
 
 class BrainStatesSubject:
@@ -254,3 +255,10 @@ class BrainStatesFeaturing:
                     np.outer(eeg_f[i_band, i_trial, :, :].diagonal(), eeg_f[i_band, i_trial, :, :].diagonal()))
 
         return eeg_f[:, :, self.mask_tri]
+
+
+def sequence_downsampling(data, ds_step_len, gauss_filter=True):
+    if gauss_filter:
+        return gaussian_filter(data, sigma=(0, 0, 1))[:, :, ::ds_step_len]
+    else:
+        return data[:, :, ::ds_step_len]

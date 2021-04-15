@@ -4,6 +4,7 @@ sys.path.append('/Users/mcomastu/TFM/brain-states-dl') # TODO: remove this first
 
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
+from data_preprocessing.preprocess_module import sequence_downsampling
 from nn_classification.data_loaders import FullEEGDataset, subject_nn_data
 from nn_classification.pl_module import LitConvClassifier
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -15,7 +16,7 @@ import torch
 
 
 def main(cfg):
-    for subject in [25, 26]:
+    for subject in [25]:
     # for subject in cfg['healthy_subjects']:
         print('------------------------------------\nSubject', subject,
               '\n------------------------------------')
@@ -38,11 +39,19 @@ def main(cfg):
 
         if cfg['gamma_freq']:
             input_data = input_data[:, 120:, :]
-            freq_str = '_gamma'
+            freq_prefix = 'freq-gamma'
+            freq_name = 'gamma'
         else:
-            freq_str = ''
+            freq_prefix = ''
+            freq_name = None
 
-        input_data = input_data[:, :, ::4]
+        # ts downsampling
+        # import matplotlib.pyplot as plt
+        # plt.plot(np.arange(1200), input_data[0,0,:])
+        # plt.plot(np.arange(1200)[::5], input_data[0,0,::5])
+        # plt.plot(np.arange(1200), gaussian_filter(input_data, sigma=1)[0,0,:])
+        # plt.plot(np.arange(1200)[::5], gaussian_filter(input_data, sigma=1)[0,0,::5])
+        input_data = sequence_downsampling(input_data, cfg['downsampling_step'])
 
         train_data = FullEEGDataset(np_input=input_data[indices[:split_idx], :, :],
                                     np_targets=targets[indices[:split_idx]])
@@ -55,20 +64,20 @@ def main(cfg):
 
         # model
         idx_hparams = {'input_channels': input_data.shape[1],
-                       'kernel_size': 8,
+                       'kernel_size': 3,
                        'n_states': len(np.unique(targets)),
                        'lr': cfg['lr'],
                        'epochs': cfg['epochs'],
-                       'input_dropout': None,
+                       'input_dropout': cfg['input_dropout'],
+                       'freq_name': freq_name,
                        'num_classes': 3}
 
         model = LitConvClassifier(hparams=idx_hparams)
 
         # training
-        output_dir = osp.join(cfg['experiments_dir'], f"conv_v0{freq_str}_bs{cfg['batch_size']}")
-        logger = TensorBoardLogger(save_dir=output_dir,
-                                   name=f"sub{subject}",
-                                   version=f"{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+        logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{subject}"),
+                                   name=f"{freq_prefix}-single_subject",
+                                   version=f"CNN_pyDropout_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
 
         trainer = pl.Trainer(max_epochs=cfg['epochs'],
                              logger=logger, deterministic=True)

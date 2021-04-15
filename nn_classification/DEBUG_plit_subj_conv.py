@@ -2,15 +2,13 @@ import sys
 sys.path.append('/Users/mcomastu/TFM/brain-states-dl') # TODO: remove this first two lines
 
 
-import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from nn_classification.data_loaders import FullEEGDataset, subject_nn_data
 from nn_classification.pl_module import LitConvClassifier
-from pytorch_lightning.loggers import TensorBoardLogger
 from utils.utils import load_cfg
 import numpy as np
-from datetime import datetime
-import os.path as osp
+from scipy.ndimage import gaussian_filter
+from torch import nn
 
 
 if __name__ == '__main__':
@@ -33,6 +31,20 @@ if __name__ == '__main__':
     np.random.shuffle(indices)
     split_idx = int(input_data.shape[1]*0.9)
 
+    if cfg['gamma_freq']:
+        input_data = input_data[:, 120:, :]
+        freq_prefix = 'freq-gamma-'
+    else:
+        freq_prefix = ''
+
+    # ts downsampling
+    # import matplotlib.pyplot as plt
+    # plt.plot(np.arange(1200), input_data[0,0,:])
+    # plt.plot(np.arange(1200)[::5], input_data[0,0,::5])
+    # plt.plot(np.arange(1200), gaussian_filter(input_data, sigma=(0, 0, 1))[0,0,:])
+    # plt.plot(np.arange(1200)[::5], gaussian_filter(input_data, sigma=(0, 0, 1))[0,0,::5])
+    input_data = gaussian_filter(input_data, sigma=(0, 0, 1))[:, :, ::cfg['downsampling_step']]
+
     train_data = FullEEGDataset(np_input=input_data[indices[:split_idx], :, :],
                                 np_targets=targets[indices[:split_idx]])
     val_data = FullEEGDataset(np_input=input_data[indices[split_idx:], :, :],
@@ -44,11 +56,10 @@ if __name__ == '__main__':
 
     # model
     idx_hparams = {'input_channels': input_data.shape[1],
-                   'kernel_size': 8,
                    'n_states': len(np.unique(targets)),
                    'lr': cfg['lr'],
                    'epochs': cfg['epochs'],
-                   'input_dropout': None,
+                   'input_dropout': cfg['input_dropout'],
                    'num_classes': 3}
 
     model = LitConvClassifier(hparams=idx_hparams)
@@ -72,13 +83,14 @@ if __name__ == '__main__':
     with torch.no_grad():
         # Pass the input tensor through each of our operations
         if self.input_dropout is not None:
-            x = F.dropout(x, self.input_dropout)
+            dp = nn.Dropout2d(p=self.input_dropout)
+            x = dp(x.unsqueeze(-1))[:, :, :, 0]
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
+        # x = F.relu(self.conv3(x))
 
         # x.shape
-        x = F.relu(self.global_avg_pooling(x))
+        x = F.relu(self._global_avg_pooling_(x))
         x = self.fc2(x)
 
 

@@ -5,6 +5,7 @@ sys.path.append('/Users/mcomastu/TFM/brain-states-dl') # TODO: remove this first
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader
+from data_preprocessing.preprocess_module import sequence_downsampling
 from nn_classification.data_loaders import FlatEEGDataset, subject_nn_data
 from nn_classification.pl_module import LitConvClassifier
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -15,7 +16,7 @@ import os.path as osp
 
 TOTAL_ROWS = 13545
 TOTAL_FEATURES = 180
-TOTAL_MS = 1200
+TOTAL_MS = 240
 
 
 def main(cfg):
@@ -25,7 +26,7 @@ def main(cfg):
     subject_ids = np.empty((TOTAL_ROWS,), dtype=np.float32)
     last_row = 0
     for subject in cfg['healthy_subjects']:
-    # for subject in [25, 26]:
+    # for subject in [25]:
         subject_input, subject_targets, long_labels = subject_nn_data(subject,
                                                                       healthy_subjects=cfg['healthy_subjects'],
                                                                       pd_subjects=cfg['pd_subjects'],
@@ -38,7 +39,10 @@ def main(cfg):
                                                                       conv=True)
 
         n_rows = subject_input.shape[0]
-        input_data[last_row:  last_row + n_rows] = subject_input.astype(np.float32)
+        input_sequences = subject_input.astype(np.float32)
+        input_data[last_row:  last_row + n_rows] = sequence_downsampling(input_sequences, cfg['downsampling_step'])
+        # input_data[last_row:  last_row + n_rows] = subject_input.astype(np.float32)
+        # input_data = sequence_downsampling(input_data, cfg['downsampling_step'])
         targets[last_row:  last_row + n_rows] = subject_targets.astype(np.float32)
         subject_ids[last_row:  last_row + n_rows] = np.array(n_rows * [subject]).astype(np.float32)
         last_row += n_rows
@@ -46,12 +50,18 @@ def main(cfg):
     if last_row < TOTAL_ROWS:
         input_data = input_data[:last_row]
         targets = targets[:last_row]
-        subject_ids = targets[:last_row]
+        subject_ids = subject_ids[:last_row]
 
-    input_data = input_data[:, :, ::4]
+    if cfg['gamma_freq']:
+        input_data = input_data[:, 120:, :]
+        freq_prefix = 'freq-gamma'
+        freq_name = 'gamma'
+    else:
+        freq_prefix = 'all-freqs'
+        freq_name = None
 
-    # for val_id in cfg['healthy_subjects']:
-    for val_id in [25]:
+    for val_id in cfg['healthy_subjects']:
+    # for val_id in [25]:
         # val_id = 25
         print('------------------------------------\nCrossvalidation. Val with subject ', val_id,
               '\n------------------------------------')
@@ -75,16 +85,16 @@ def main(cfg):
                        'n_states': len(np.unique(targets)),
                        'lr': cfg['lr'],
                        'epochs': cfg['epochs'],
-                       'input_dropout': None,
+                       'input_dropout': cfg['input_dropout'],
+                       'freq_name': freq_name,
                        'num_classes': 3}
 
         model = LitConvClassifier(hparams=idx_hparams)
 
         # training
-        output_dir = osp.join('exp_logs_conv_crossval', f"conv_v0_bs{cfg['batch_size']}")
-        logger = TensorBoardLogger(save_dir=output_dir,
-                                   name=f"sub{val_id}",
-                                   version=f"{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+        logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{val_id}"),
+                                   name=f"{freq_prefix}crossval",
+                                   version=f"CNN_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
 
         trainer = pl.Trainer(max_epochs=cfg['epochs'],
                              logger=logger, deterministic=True)
