@@ -93,7 +93,7 @@ def main(cfg):
 
         # training
         logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{val_id}"),
-                                   name=f"{freq_prefix}crossval",
+                                   name=f"{freq_prefix}-crossval",
                                    version=f"CNN_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
 
         trainer = pl.Trainer(max_epochs=cfg['epochs'],

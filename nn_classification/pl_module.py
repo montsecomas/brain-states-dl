@@ -79,7 +79,14 @@ class LitMlpClassifier(pl.LightningModule):
         # TODO: parametrize num_classes/labels
         auc = torch.as_tensor(roc_auc_score(target.numpy(), F.softmax(output, dim=-1).numpy(),
                                             average='macro', multi_class='ovo', labels=[0, 1, 2]))
-        return {'auc': auc}
+
+        preds = torch.argmax(F.softmax(output, dim=-1), dim=-1)
+        acc_mot0 = torch.sum((target == preds) & (target == 0))/torch.sum(target == 0)
+        acc_mot1 = torch.sum((target == preds) & (target == 1))/torch.sum(target == 1)
+        acc_mot2 = torch.sum((target == preds) & (target == 2))/torch.sum(target == 2)
+
+        return {'auc': auc, 'accuracy-avg': (acc_mot0+acc_mot1+acc_mot2)/3,
+                'accuracy-motiv-0': acc_mot0, 'accuracy-motiv-1': acc_mot1, 'accuracy-motiv-2': acc_mot2}
 
     def validation_epoch_end(self, outputs):
         if self.current_epoch in map(int, [self.epochs/self.epochs, self.epochs/(self.epochs/2), self.epochs-1]):
@@ -90,12 +97,13 @@ class LitMlpClassifier(pl.LightningModule):
 
             df_cm = pd.DataFrame(confusion_matrix.numpy(), index=range(self.num_classes),
                                  columns=range(self.num_classes))
-            plt.figure(figsize=(25, 18))
-            plt.rcParams['font.size'] = 40
+
+            plt.figure(figsize=(12, 9))
+            plt.rcParams['font.size'] = 30
             fig_ = sns.heatmap(df_cm, annot=True, cmap=self.cmap).get_figure()
-            plt.title(f'{self.freq_name}, {self.feature}', fontsize=50)
-            plt.xlabel('Predicted label', fontsize=50)
-            plt.ylabel('True label', fontsize=50)
+            plt.title(f'{self.freq_name if self.freq_name is not None else "All freqs"}, MLP', fontsize=30)
+            plt.xlabel('Predicted label', fontsize=30)
+            plt.ylabel('True label', fontsize=30)
             plt.close(fig_)
 
             self.logger.experiment.add_figure("Confusion matrix", fig_, self.current_epoch)
@@ -130,7 +138,7 @@ class LitConvClassifier(pl.LightningModule):
         elif self.freq_name == 'gamma':
             self.cmap = 'Reds'
         elif self.freq_name is None:
-            self.cmap = 'CMRmap'
+            self.cmap = 'afmhot_r'
 
     def _global_avg_pooling_(self, x):
         return torch.mean(x, dim=2)
@@ -189,9 +197,10 @@ class LitConvClassifier(pl.LightningModule):
 
         preds = torch.argmax(F.softmax(output, dim=-1), dim=-1)
         acc_mot0 = torch.sum((target == preds) & (target == 0))/torch.sum(target == 0)
-        # acc_mot1 = 0
-        # acc_mot2 = 0
-        return {'auc': auc, 'accuracy-mot-0': acc_mot0} #, 'accuracy-mot-1': acc_mot1, 'accuracy-mot-2': acc_mot2
+        acc_mot1 = torch.sum((target == preds) & (target == 1))/torch.sum(target == 1)
+        acc_mot2 = torch.sum((target == preds) & (target == 2))/torch.sum(target == 2)
+        return {'auc': auc, 'accuracy-avg': (acc_mot0+acc_mot1+acc_mot2)/3,
+                'accuracy-motiv-0': acc_mot0, 'accuracy-motiv-1': acc_mot1, 'accuracy-motiv-2': acc_mot2}
 
     def validation_epoch_end(self, outputs):
         if self.current_epoch in map(int, [self.epochs/self.epochs, self.epochs/(self.epochs/2), self.epochs-1]):
@@ -203,11 +212,11 @@ class LitConvClassifier(pl.LightningModule):
             df_cm = pd.DataFrame(confusion_matrix.numpy(), index=range(self.num_classes),
                                  columns=range(self.num_classes))
             plt.figure(figsize=(12, 9))
-            plt.rcParams['font.size'] = 40
+            plt.rcParams['font.size'] = 30
             fig_ = sns.heatmap(df_cm, annot=True, cmap=self.cmap).get_figure()
-            plt.title(f'{self.freq_name}, CNN', fontsize=50)
-            plt.xlabel('Predicted label', fontsize=50)
-            plt.ylabel('True label', fontsize=50)
+            plt.title(f'{self.freq_name if self.freq_name is not None else "All freqs"}, CNN', fontsize=30)
+            plt.xlabel('Predicted label', fontsize=30)
+            plt.ylabel('True label', fontsize=30)
             plt.close(fig_)
 
             self.logger.experiment.add_figure("Confusion matrix", fig_, self.current_epoch)

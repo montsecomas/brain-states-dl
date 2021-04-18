@@ -16,8 +16,8 @@ import torch
 
 
 def main(cfg):
-    for subject in [25]:
-    # for subject in cfg['healthy_subjects']:
+    # for subject in [25]:
+    for subject in cfg['healthy_subjects']:
         print('------------------------------------\nSubject', subject,
               '\n------------------------------------')
     # subject = 25
@@ -37,51 +37,55 @@ def main(cfg):
         np.random.shuffle(indices)
         split_idx = int(input_data.shape[0]*0.9)
 
-        if cfg['gamma_freq']:
-            input_data = input_data[:, 120:, :]
-            freq_prefix = 'freq-gamma'
-            freq_name = 'gamma'
+        if cfg['sep_freqs']:
+            freqs_idx = [0, 1, 2]
+            freq_names = ['alpha', 'beta', 'gamma']
+            freq_prefixes = [f'freq-{freq_name}' for freq_name in freq_names]
         else:
-            freq_prefix = ''
-            freq_name = None
+            freqs_idx = [0]
+            freq_names = [None]
+            freq_prefixes = ['all-freqs']
 
-        # ts downsampling
-        # import matplotlib.pyplot as plt
-        # plt.plot(np.arange(1200), input_data[0,0,:])
-        # plt.plot(np.arange(1200)[::5], input_data[0,0,::5])
-        # plt.plot(np.arange(1200), gaussian_filter(input_data, sigma=1)[0,0,:])
-        # plt.plot(np.arange(1200)[::5], gaussian_filter(input_data, sigma=1)[0,0,::5])
-        input_data = sequence_downsampling(input_data, cfg['downsampling_step'])
+        for freq_id in freqs_idx:
+            if len(freqs_idx) == 1:
+                input_data_freq = input_data
+            else:
+                input_data_freq = input_data[:, freq_id * 60:freq_id * 60 + 60, :]
 
-        train_data = FullEEGDataset(np_input=input_data[indices[:split_idx], :, :],
-                                    np_targets=targets[indices[:split_idx]])
-        val_data = FullEEGDataset(np_input=input_data[indices[split_idx:], :, :],
-                                  np_targets=targets[indices[split_idx:]])
+            freq_prefix = freq_prefixes[freq_id]
+            freq_name = freq_names[freq_id]
 
-        # data loaders
-        train_loader = DataLoader(train_data, batch_size=cfg['batch_size'], shuffle=True, num_workers=0)
-        val_loader = DataLoader(val_data, batch_size=len(val_data), shuffle=False, num_workers=0)
+            input_data_freq = sequence_downsampling(input_data_freq, cfg['downsampling_step'])
 
-        # model
-        idx_hparams = {'input_channels': input_data.shape[1],
-                       'kernel_size': 3,
-                       'n_states': len(np.unique(targets)),
-                       'lr': cfg['lr'],
-                       'epochs': cfg['epochs'],
-                       'input_dropout': cfg['input_dropout'],
-                       'freq_name': freq_name,
-                       'num_classes': 3}
+            train_data = FullEEGDataset(np_input=input_data_freq[indices[:split_idx], :, :],
+                                        np_targets=targets[indices[:split_idx]])
+            val_data = FullEEGDataset(np_input=input_data_freq[indices[split_idx:], :, :],
+                                      np_targets=targets[indices[split_idx:]])
 
-        model = LitConvClassifier(hparams=idx_hparams)
+            # data loaders
+            train_loader = DataLoader(train_data, batch_size=cfg['batch_size'], shuffle=True, num_workers=0)
+            val_loader = DataLoader(val_data, batch_size=len(val_data), shuffle=False, num_workers=0)
 
-        # training
-        logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{subject}"),
-                                   name=f"{freq_prefix}-single_subject",
-                                   version=f"CNN_pyDropout_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+            # model
+            idx_hparams = {'input_channels': input_data_freq.shape[1],
+                           'kernel_size': 3,
+                           'n_states': len(np.unique(targets)),
+                           'lr': cfg['lr'],
+                           'epochs': cfg['epochs'],
+                           'input_dropout': cfg['input_dropout'],
+                           'freq_name': freq_name,
+                           'num_classes': 3}
 
-        trainer = pl.Trainer(max_epochs=cfg['epochs'],
-                             logger=logger, deterministic=True)
-        trainer.fit(model, train_loader, val_loader)
+            model = LitConvClassifier(hparams=idx_hparams)
+
+            # training
+            logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{subject}"),
+                                       name=f"{freq_prefix}-single_subject",
+                                       version=f"CNN_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+
+            trainer = pl.Trainer(max_epochs=cfg['epochs'],
+                                 logger=logger, deterministic=True)
+            trainer.fit(model, train_loader, val_loader)
 
 
 if __name__ == '__main__':
