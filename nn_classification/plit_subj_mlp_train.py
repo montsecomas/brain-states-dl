@@ -16,10 +16,11 @@ import torch
 
 def main(cfg):
     # for subject in [25]:
+    # cfg = load_cfg()
     for subject in cfg['healthy_subjects']:
         print('------------------------------------\nSubject', subject,
               '\n------------------------------------')
-        # subject = 25
+        # subject = 26
         input_data, targets, long_labels = subject_nn_data(subject,
                                                            healthy_subjects=cfg['healthy_subjects'],
                                                            pd_subjects=cfg['pd_subjects'],
@@ -67,8 +68,8 @@ def main(cfg):
             # training
             prefix = 'pow-mean' if (cfg['mat_dict'] == 'dataSorted') else 'IC-MEAN'
             logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{subject}"),
-                                       name=f"freq-{freqs[freq]}-single_subject",
-                                       version=f"{prefix}_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+                                       name=f"freq-{freqs[freq]}-dropout{str(cfg['input_dropout'])}-single_subject",
+                                       version=f"MLP-{prefix}_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
             trainer = pl.Trainer(max_epochs=cfg['epochs'],
                                  logger=logger)
             trainer.fit(model, train_loader, val_loader)

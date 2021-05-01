@@ -37,8 +37,7 @@ def main(cfg):
     targets = np.concatenate(all_targets)
     subject_ids = np.concatenate(subject_ids)
 
-    # for val_id in cfg['healthy_subjects']:
-    for val_id in [25, 26]:
+    for val_id in cfg['healthy_subjects']:
         # val_id = 25
         # for val_id in cfg['healthy_subjects']:
         print('------------------------------------\nCrossvalidation. Val with subject ', val_id,
@@ -81,7 +80,7 @@ def main(cfg):
             prefix = 'pow-mean'
             logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{val_id}"),
                                        name=f"freq-{freqs[freq]}-crossval",
-                                       version=f"{prefix}_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+                                       version=f"MLP_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
 
             trainer = pl.Trainer(max_epochs=cfg['epochs'],
                                  logger=logger)

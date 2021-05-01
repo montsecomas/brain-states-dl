@@ -5,7 +5,7 @@ mat_dict: 'dataSorted' # ica or dataSorted
 use_silent_channels: True # NO TOCAR
 pd_subjects: []
 healthy_subjects : [25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]
-batch_size: 128 #64 ss 128 cv
+batch_size: 64 #64 ss 128 cv
 n_hidden_nodes : 128
 n_hidden_layers: 2
 lr: 0.001
@@ -13,9 +13,9 @@ epochs: 80
 input_dropout: 0.2 # >0 or None
 mlp_dropout: # >0 or None
 weight_decay: # >0 or None
-experiments_dir : 'exp_logs_crossval'
+experiments_dir : 'exp_logs_dropout_subject'
 pred_feature: 'pow_mean' # ic_mean or pow_mean
 mask_value: '0' # '-1', '0', 'mean' or None -- DEIXAR A 0 PER SER COMPARABLE AMB DROPOUT
-gamma_freq: True
+gamma_freq: False
 sep_freqs: True
 downsampling_step: 5

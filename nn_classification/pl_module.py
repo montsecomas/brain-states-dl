@@ -122,7 +122,11 @@ class LitConvClassifier(pl.LightningModule):
         self.num_classes = self.hparams['num_classes']
         self.input_dropout = self.hparams['input_dropout']
 
-        self.dropout_2d = nn.Dropout2d(self.input_dropout)
+        if self.input_dropout is not None:
+            self.dropout_2d = nn.Dropout2d(self.input_dropout)
+        else:
+            self.dropout_2d = nn.Dropout2d(0)
+
         self.conv1 = nn.Conv1d(self.input_channels, 256, 8, stride=2, padding=0)
         self.conv2 = nn.Conv1d(256, 512, 6, stride=2, padding=0)
         # self.conv3 = nn.Conv1d(256, 128, self.kernel_size, stride=2, padding=1)
@@ -187,6 +191,7 @@ class LitConvClassifier(pl.LightningModule):
         return self.trainval_step(batch, batch_idx, trainval='train')
 
     def validation_step(self, batch, batch_idx):
+        assert not self.training
         return self.trainval_step(batch, batch_idx, trainval='val')
 
     @torch.no_grad()

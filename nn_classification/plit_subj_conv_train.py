@@ -80,7 +80,7 @@ def main(cfg):
 
             # training
             logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{subject}"),
-                                       name=f"{freq_prefix}-single_subject",
+                                       name=f"{freq_prefix}-dropout{str(cfg['input_dropout'])}-single_subject",
                                        version=f"CNN_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
 
             trainer = pl.Trainer(max_epochs=cfg['epochs'],
