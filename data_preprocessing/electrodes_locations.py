@@ -2,8 +2,10 @@ import numpy as np
 import os.path as osp
 import re
 import matplotlib.pyplot as plt
+from utils.file_utils import load_cfg
 
 coordinates = 'xy'
+cfg = load_cfg()
 
 if coordinates != 'xy':
     filename = osp.join('data', 'healthy_sb', 'electrodes_loc', 'easycap-M10.txt')
@@ -20,7 +22,7 @@ content = [x.strip() for x in content]
 str_content = np.asarray([re.split('\t', line.replace(' ', '')) for line in content])
 
 if coordinates == 'xy':
-    np.save('data/healthy_sb/electrodes_loc/xy_coord.npy', str_content)
+    np.save(osp.join(cfg['outputs_path'], cfg['electrodes_map'], 'xy_coord.npy'), str_content)
     xs = str_content[:, 1].astype(float)
     ys = str_content[:, 2].astype(float)
     tags = str_content[:, -1]

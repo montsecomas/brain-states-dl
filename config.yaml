@@ -2,9 +2,12 @@ data_path: 'data'
 pd_dir: 'pd_sb'
 healthy_dir: 'healthy_sb'
 outputs_path: 'data_outputs'
+electrodes_map: 'electrodes_loc'
 splits_path: 'train_val_split'
 interpret_figures: 'figures'
 interpret_heatmaps: 'validation-heatmaps'
+interpret_loc: 'located-importances'
+interpret_imp_mlp: 'mlp_importances'
 mat_dict: 'dataSorted' # ica or dataSorted
 use_silent_channels: True # NO TOCAR
 pd_subjects: []
