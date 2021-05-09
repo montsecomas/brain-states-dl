@@ -81,11 +81,12 @@ class LitMlpClassifier(pl.LightningModule):
                                             average='macro', multi_class='ovo', labels=[0, 1, 2]))
 
         preds = torch.argmax(F.softmax(output, dim=-1), dim=-1)
+        acc_total = torch.sum(target == preds) / len(target)
         acc_mot0 = torch.sum((target == preds) & (target == 0))/torch.sum(target == 0)
         acc_mot1 = torch.sum((target == preds) & (target == 1))/torch.sum(target == 1)
         acc_mot2 = torch.sum((target == preds) & (target == 2))/torch.sum(target == 2)
 
-        return {'auc': auc, 'accuracy-avg': (acc_mot0+acc_mot1+acc_mot2)/3,
+        return {'auc': auc, 'accuracy-avg': acc_total,
                 'accuracy-motiv-0': acc_mot0, 'accuracy-motiv-1': acc_mot1, 'accuracy-motiv-2': acc_mot2}
 
     def validation_epoch_end(self, outputs):
@@ -201,10 +202,11 @@ class LitConvClassifier(pl.LightningModule):
                                             average='macro', multi_class='ovo', labels=[0, 1, 2]))
 
         preds = torch.argmax(F.softmax(output, dim=-1), dim=-1)
+        acc_total = torch.sum(target == preds)/len(target)
         acc_mot0 = torch.sum((target == preds) & (target == 0))/torch.sum(target == 0)
         acc_mot1 = torch.sum((target == preds) & (target == 1))/torch.sum(target == 1)
         acc_mot2 = torch.sum((target == preds) & (target == 2))/torch.sum(target == 2)
-        return {'auc': auc, 'accuracy-avg': (acc_mot0+acc_mot1+acc_mot2)/3,
+        return {'auc': auc, 'accuracy-avg': acc_total,
                 'accuracy-motiv-0': acc_mot0, 'accuracy-motiv-1': acc_mot1, 'accuracy-motiv-2': acc_mot2}
 
     def validation_epoch_end(self, outputs):

@@ -3,7 +3,7 @@ sys.path.append('/Users/mcomastu/TFM/brain-states-dl') # TODO: remove this first
 
 
 import numpy as np
-from utils.utils import load_cfg, is_pd_patient, processed_data_path, processed_labels_path
+from utils.file_utils import load_cfg, is_pd_patient, processed_data_path, processed_labels_path
 from data_preprocessing.preprocess_module import BrainStatesSubject, BrainStatesFeaturing
 
 

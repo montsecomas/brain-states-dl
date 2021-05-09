@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from utils.utils import load_cfg
+from utils.file_utils import load_cfg
 from nn_classification.models import TestNet
 from nn_classification.data_loaders import FlatEEGDataset, subject_nn_data
 

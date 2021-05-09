@@ -7,10 +7,11 @@ from torch.utils.data import DataLoader
 from nn_classification.data_loaders import FlatEEGDataset, subject_nn_data
 from nn_classification.pl_module import LitMlpClassifier
 from pytorch_lightning.loggers import TensorBoardLogger
-from utils.utils import load_cfg
+from utils.file_utils import load_cfg
 import numpy as np
 from datetime import datetime
 import os.path as osp
+import os
 import torch
 
 
@@ -34,11 +35,20 @@ def main(cfg):
         freqs = ['alpha', 'beta', 'gamma']
         freqs_idx = [0, 1, 2]
         # freq = 0
-        for freq in freqs_idx:
-            # train-val split
+
+        split_idx_path = osp.join(cfg['data_path'], cfg['healthy_dir'], cfg['splits_path'], f'{subject}-mlp.npy')
+
+        if osp.exists(split_idx_path):
+            indices = np.load(split_idx_path)
+        else:
             indices = np.arange(input_data.shape[1])
             np.random.shuffle(indices)
-            split_idx = int(input_data.shape[1] * 0.9)
+            np.save(split_idx_path, indices)
+
+        split_idx = int(input_data.shape[1] * 0.9)
+
+        for freq in freqs_idx:
+            # train-val split
 
             train_data = FlatEEGDataset(np_input=input_data[freq, indices[:split_idx], :],
                                         np_targets=targets[indices[:split_idx]])
@@ -68,7 +78,7 @@ def main(cfg):
             # training
             prefix = 'pow-mean' if (cfg['mat_dict'] == 'dataSorted') else 'IC-MEAN'
             logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{subject}"),
-                                       name=f"freq-{freqs[freq]}-dropout{str(cfg['input_dropout'])}-single_subject",
+                                       name=f"freq-{freqs[freq]}-single_subject",
                                        version=f"MLP-{prefix}_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
             trainer = pl.Trainer(max_epochs=cfg['epochs'],
                                  logger=logger)

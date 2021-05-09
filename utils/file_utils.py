@@ -1,5 +1,6 @@
 import yaml
 import os.path as osp
+from nn_classification.pl_module import LitMlpClassifier, LitConvClassifier
 
 
 def load_cfg(path="config.yaml"):
@@ -71,8 +72,16 @@ def processed_labels_path(subject_id, is_pd, data_path, pd_dir, healthy_dir):
     return osp.join(output_path, f"labels-{subject_id}.npy")
 
 
-def model_path(subject_id, is_pd, feature_name):
-    pass
+def load_model(ckpt_path, model='mlp'):
+
+    if model == 'mlp':
+        LitClassifier = LitMlpClassifier
+    elif model == 'cnn':
+        LitClassifier = LitConvClassifier
+
+    model = LitClassifier.load_from_checkpoint(checkpoint_path=ckpt_path)
+
+    return model
 
 
 

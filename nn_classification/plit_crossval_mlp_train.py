@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from nn_classification.data_loaders import FlatEEGDataset, subject_nn_data
 from nn_classification.pl_module import LitMlpClassifier
 from pytorch_lightning.loggers import TensorBoardLogger
-from utils.utils import load_cfg
+from utils.file_utils import load_cfg
 import numpy as np
 from datetime import datetime
 import os.path as osp

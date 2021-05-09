@@ -6,7 +6,7 @@ import os
 import numpy as np
 import scipy.io as sio
 import itertools
-from utils.utils import raw_input_path, subject_res_dir
+from utils.file_utils import raw_input_path, subject_res_dir
 from scipy.ndimage import gaussian_filter
 
 

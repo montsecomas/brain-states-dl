@@ -5,7 +5,7 @@ sys.path.append('/Users/mcomastu/TFM/brain-states-dl') # TODO: remove this first
 from torch.utils.data import DataLoader
 from nn_classification.data_loaders import FullEEGDataset, subject_nn_data
 from nn_classification.pl_module import LitConvClassifier
-from utils.utils import load_cfg
+from utils.file_utils import load_cfg
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from torch import nn

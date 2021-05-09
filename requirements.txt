@@ -4,4 +4,5 @@ scikit-learn==0.24.1
 matplotlib==3.3.4
 networkx==2.5
 pyyaml==5.3.1
-torch
+captum==0.3.1
+torch==1.8.1

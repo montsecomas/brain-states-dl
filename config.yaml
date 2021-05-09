@@ -1,6 +1,10 @@
 data_path: 'data'
 pd_dir: 'pd_sb'
 healthy_dir: 'healthy_sb'
+outputs_path: 'data_outputs'
+splits_path: 'train_val_split'
+interpret_figures: 'figures'
+interpret_heatmaps: 'validation-heatmaps'
 mat_dict: 'dataSorted' # ica or dataSorted
 use_silent_channels: True # NO TOCAR
 pd_subjects: []
@@ -10,10 +14,10 @@ n_hidden_nodes : 128
 n_hidden_layers: 2
 lr: 0.001
 epochs: 80
-input_dropout: 0.2 # >0 or None
+input_dropout: # >0 or None
 mlp_dropout: # >0 or None
 weight_decay: # >0 or None
-experiments_dir : 'exp_logs_dropout_subject'
+experiments_dir : 'exp_logs_subject'
 pred_feature: 'pow_mean' # ic_mean or pow_mean
 mask_value: '0' # '-1', '0', 'mean' or None -- DEIXAR A 0 PER SER COMPARABLE AMB DROPOUT
 gamma_freq: False
