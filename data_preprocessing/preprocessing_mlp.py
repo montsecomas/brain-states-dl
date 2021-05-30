@@ -12,13 +12,17 @@ if __name__ == '__main__':
     cfg = load_cfg()
 
     for subject in cfg['healthy_subjects']:
-        # subject = 26
+        # subject = 25
         is_pd = is_pd_patient(subject, healthy_subjects=cfg['healthy_subjects'], pd_subjects=cfg['pd_subjects'])
 
         sample = BrainStatesSubject(i_sub=subject, PD=is_pd, subset=cfg['mat_dict'],
                                     data_path=cfg['data_path'], pd_dir=cfg['pd_dir'], healthy_dir=cfg['healthy_dir'],
                                     use_silent_channels=cfg['use_silent_channels'])
-        flat_data, flat_pks, is_pd = sample.run_pipeline()
+        flat_data, flat_pks, is_pd, invalid_ch = sample.run_pipeline()
+        np.save(processed_data_path(subject_id=subject, is_pd=is_pd, use_silent_channels=False,
+                                    feature_name='silent_channels', data_path=cfg['data_path'], pd_dir=cfg['pd_dir'],
+                                    healthy_dir=cfg['healthy_dir']),
+                invalid_ch)
 
         sample_featuring = BrainStatesFeaturing(input_ts=flat_data, input_labels=flat_pks, pd_sub=is_pd,
                                                 use_silent_channels=cfg['use_silent_channels'])

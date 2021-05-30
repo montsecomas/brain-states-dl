@@ -5,7 +5,7 @@ outputs_path: 'data_outputs'
 electrodes_map: 'electrodes_loc'
 splits_path: 'train_val_split'
 interpret_figures: 'figures'
-interpret_heatmaps: 'validation-heatmaps'
+interpret_heatmaps: 'validation-histograms'
 interpret_loc: 'located-importances'
 interpret_imp_mlp: 'mlp_importances'
 mat_dict: 'dataSorted' # ica or dataSorted
@@ -20,7 +20,7 @@ epochs: 80
 input_dropout: # >0 or None
 mlp_dropout: # >0 or None
 weight_decay: # >0 or None
-experiments_dir : 'exp_logs_subject'
+experiments_dir : 'exp_logs_subject_nosilent'
 pred_feature: 'pow_mean' # ic_mean or pow_mean
 mask_value: '0' # '-1', '0', 'mean' or None -- DEIXAR A 0 PER SER COMPARABLE AMB DROPOUT
 gamma_freq: False

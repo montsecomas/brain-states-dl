@@ -65,6 +65,8 @@ def processed_data_path(subject_id, is_pd, data_path, pd_dir, healthy_dir,
             return osp.join(output_path, f"freq-ica_cov-{subject_id}.npy")
         elif feature_name == 'ic_cor':
             return osp.join(output_path, f"freq-ica-cor-{subject_id}.npy")
+        elif feature_name == 'silent_channels':
+            return osp.join(output_path, f"silent-channels-{subject_id}.npy")
 
 
 def processed_labels_path(subject_id, is_pd, data_path, pd_dir, healthy_dir):

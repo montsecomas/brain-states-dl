@@ -56,10 +56,11 @@ class FullEEGDataset(torch.utils.data.Dataset):
 
 
 class SingleSubjectNNData:
-    def __init__(self, subject, classifier, cfg, force_read_split=False):
+    def __init__(self, subject, classifier, cfg, read_silent_channels=True, force_read_split=False):
         self.subject = subject
         self.cfg = cfg
         self.force_read_split = force_read_split
+        self.read_silent_channels = read_silent_channels
         self.split_idx_path = osp.join(self.cfg['outputs_path'],
                                        self.cfg['splits_path'],
                                        f'{self.subject}-mlp.npy')
@@ -78,7 +79,7 @@ class SingleSubjectNNData:
                                                            data_path=self.cfg['data_path'],
                                                            pd_dir=self.cfg['pd_dir'],
                                                            healthy_dir=self.cfg['healthy_dir'],
-                                                           use_silent_channels=self.cfg['use_silent_channels'],
+                                                           use_silent_channels=self.read_silent_channels,
                                                            mask_value=self.cfg['mask_value'])
 
         if self.force_read_split or osp.exists(self.split_idx_path):

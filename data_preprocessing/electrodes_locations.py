@@ -5,14 +5,15 @@ import matplotlib.pyplot as plt
 from utils.file_utils import load_cfg
 
 coordinates = 'xy'
+do_surface = False
 cfg = load_cfg()
 
 if coordinates != 'xy':
-    filename = osp.join('data', 'healthy_sb', 'electrodes_loc', 'easycap-M10.txt')
+    filename = osp.join(cfg['outputs_path'], cfg['electrodes_map'], 'easycap-M10.txt')
     with open(filename) as f:
         content = f.readlines()[1:]
 else:
-    filename = osp.join('data', 'healthy_sb', 'electrodes_loc', 'ActiCap64_LM.lay')
+    filename = osp.join(cfg['outputs_path'], cfg['electrodes_map'], 'ActiCap64_LM.lay')
     with open(filename) as f:
         content = f.readlines()
 

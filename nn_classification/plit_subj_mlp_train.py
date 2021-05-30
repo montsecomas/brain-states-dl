@@ -36,7 +36,7 @@ def main(cfg):
         freqs_idx = [0, 1, 2]
         # freq = 0
 
-        split_idx_path = osp.join(cfg['data_path'], cfg['healthy_dir'], cfg['splits_path'], f'{subject}-mlp.npy')
+        split_idx_path = osp.join(cfg['outputs_path'], cfg['splits_path'], f'{subject}-mlp.npy')
 
         if osp.exists(split_idx_path):
             indices = np.load(split_idx_path)

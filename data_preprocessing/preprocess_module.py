@@ -49,9 +49,9 @@ class BrainStatesSubject:
 
     def run_pipeline(self):
         self._define_subject_dir()
-        clean_ts = self._process_data_sorted()
+        clean_ts, invalid_ch = self._process_data_sorted()
         flat_sub_ts, sub_ids = self._define_labels(clean_ts)
-        return flat_sub_ts, sub_ids, self.PD
+        return flat_sub_ts, sub_ids, self.PD, invalid_ch
 
     def _define_subject_dir(self):
         """
@@ -80,8 +80,8 @@ class BrainStatesSubject:
         valid_ch = np.logical_not(invalid_ch)
         cleaned_data = data[valid_ch, :, :, :]
         N = valid_ch.sum()
-        print(N, 'left channels out of ', data.shape[0])
-        return cleaned_data, N
+        print(N, 'healthy channels out of ', data.shape[0])
+        return cleaned_data, N, invalid_ch
 
     def _process_data_sorted(self):
         """
@@ -100,8 +100,9 @@ class BrainStatesSubject:
         else:
             if self.use_silent_channels:
                 clean_channels, red_n = self.raw_data, n
+                _, _, invalid_ch = self._discard_channels(self.raw_data)
             else:
-                clean_channels, red_n = self._discard_channels(self.raw_data)
+                clean_channels, red_n, invalid_ch = self._discard_channels(self.raw_data)
             session1 = clean_channels[:, :, :, 0::2]
             session2 = clean_channels[:, :, :, 1::2]
             subsets = [session1, session2]
@@ -122,7 +123,7 @@ class BrainStatesSubject:
 
             ts = np.concatenate((ts, np.array([ts_tmp_new])))
 
-        return ts
+        return ts, invalid_ch
 
     def _define_labels(self, data):
         """
@@ -161,6 +162,7 @@ class BrainStatesFeaturing:
         :param pd_sub:
         """
         print('Applying band-pass filters and computing final features')
+        self.use_silent_channels = use_silent_channels
         self.input_ts = input_ts
         self.input_labels = input_labels
         self.ms = self.input_ts.shape[1]
@@ -173,7 +175,7 @@ class BrainStatesFeaturing:
         self.n_bands = 3
         self.band_filter_order = 3
         self.bandpassed = self._filter_frequencies()
-        if not use_silent_channels:
+        if not self.use_silent_channels:
             self.ini_eeg_f = self._build_cor_cov_mat()
         self.mask_tri = np.tri(self.n_raw_features, self.n_raw_features, -1, dtype=np.bool_)
 
