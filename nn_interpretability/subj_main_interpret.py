@@ -9,10 +9,10 @@ if __name__ == '__main__':
     cfg = load_cfg()
     ckpt_paths = load_cfg('nn_interpretability/ckpt_paths.yml')
     DO_HISTS = False
-    DO_TABLES = False
-    DO_PLOT_MAP = False
-    DO_SURF_MAP = False
-    USE_SILENT_CHANNELS = False
+    DO_TABLES = True
+    DO_PLOT_MAP = True
+    DO_SURF_MAP = True
+    USE_SILENT_CHANNELS = True
     # 'IntegratedGradients', 'ShapleyValueSampling', 'KernelShap', 'Lime'
     METHOD = 'ShapleyValueSampling'
 

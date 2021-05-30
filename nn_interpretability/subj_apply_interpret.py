@@ -66,33 +66,30 @@ def run_attributions_bloc(cfg, ckpt_paths, draw_histograms, save_tables, draw_do
 
         # ---- LOAD TRAINED MODEL ----
         if nn_use_silent_channels:
-            subject_path = f'exp_logs_subject/subject-{subject}/'
+            subject_path = f'exp_logs_subject_fixsilent/subject-{subject}/'
         else:
             subject_path = f'exp_logs_subject_nosilent/subject-{subject}/'
 
         # ---- LOAD TRAIN VAL DATASET ----
         subject_data = SingleSubjectNNData(subject=subject, classifier='mlp', cfg=cfg,
                                            read_silent_channels=True, force_read_split=True)
-        subject_red_data = SingleSubjectNNData(subject=subject, classifier='mlp', cfg=cfg,
-                                               read_silent_channels=False, force_read_split=True)
 
         for FREQ in freq_ids.keys():
             # FREQ = 'gamma'
-            model_ckpt = f'ss-{FREQ}-mlp-pow' if nn_use_silent_channels else f'ss-{FREQ}-mlp-pow-nosilent'
+            model_ckpt = f'ss-{FREQ}-mlp-pow-nosilent' if nn_use_silent_channels else f'ss-{FREQ}-mlp-pow-nosilent'
             ckpt_path = ckpt_paths[subject][model_ckpt]
             model = load_model(osp.join(subject_path, ckpt_path), model='mlp')
 
             freq_id = freq_ids[FREQ]
             train_loader, val_loader = subject_data.mlp_ds_loaders(freq=freq_id)  # 0 alpha, 1 beta, 2 gamma
-            train_loader_red, val_loader_red = subject_red_data.mlp_ds_loaders(freq=freq_id)  # 0 alpha, 1 beta, 2 gamma
 
-            batch, batch_red = next(iter(val_loader)), next(iter(val_loader_red))
+            batch = next(iter(val_loader))
             inputs, targets = batch
-            inputs_red, targets_red = batch_red
-            silent_chan = np.sum(inputs.numpy(), axis=0) == 0
+            silent_chan = np.load(osp.join(cfg['data_path'], cfg['healthy_dir'], f'res_subject_{subject}',
+                                           f'silent-channels-{subject}.npy'))
 
             # ---- MAKE PREDICTIONS ----
-            test_input_tensor = inputs.float().clone() if nn_use_silent_channels else inputs_red.float().clone()
+            test_input_tensor = inputs.float().clone()
             out_probs = model(test_input_tensor).detach().numpy()
             out_classes = np.argmax(out_probs, axis=1)
 
@@ -113,7 +110,7 @@ def run_attributions_bloc(cfg, ckpt_paths, draw_histograms, save_tables, draw_do
                                          create_histograms=draw_histograms,
                                          silent_chan=silent_chan)
 
-            target_dfs = importances_results_df(subject, FREQ, cfg, attrs, electrodes_pos, save_tables)
+            target_dfs = importances_results_df(subject, FREQ, cfg, attrs, electrodes_pos, silent_chan, save_tables)
 
             if draw_dots_map:
                 ig_results_loc_scatter_maps(subject, FREQ, cfg, target_dfs, electrodes_pos, method=method,

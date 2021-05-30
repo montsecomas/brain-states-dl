@@ -14,15 +14,28 @@ def subject_nn_data(subject, healthy_subjects, pd_subjects, data_path, pd_dir, h
                                              healthy_dir=healthy_dir, conv=conv))
     np_labels = np.load(processed_labels_path(subject_id=subject, is_pd=is_pd, data_path=data_path,
                                               pd_dir=pd_dir, healthy_dir=healthy_dir))
+    invalid_ch = np.load(processed_data_path(subject_id=subject, is_pd=is_pd, use_silent_channels=False,
+                                             feature_name='silent_channels', data_path=data_path, pd_dir=pd_dir,
+                                             healthy_dir=healthy_dir))
+
+    if conv:
+        aux_invalid_ch = np.repeat(np.array([invalid_ch]), [3], axis=0).reshape(-1)
+        ts_invalid_ch = np.repeat(np.array([aux_invalid_ch]), 3, axis=0) # TODO
+        invalid_mask = False
+    else:
+        invalid_mask = np.tile(invalid_ch[None, None], (input_data.shape[0], input_data.shape[1], 1))
+
     le = preprocessing.LabelEncoder()
     le.fit(np_labels[:, 1])
     targets = le.transform(np_labels[:, 1])
 
     if use_silent_channels:
         if mask_value == '-1':
-            input_data[np.isnan(input_data)] = float(-1)
+            # input_data[np.isnan(input_data)] = float(-1)
+            input_data[invalid_mask] = float(-1)
         if mask_value == '0':
-            input_data[np.isnan(input_data)] = float(0)
+            # input_data[np.isnan(input_data)] = float(0)
+            input_data[invalid_mask] = float(0)
         elif mask_value == 'mean':
             inds = np.where(np.isnan(input_data))
             dim_means = np.nanmean(input_data, axis=2)

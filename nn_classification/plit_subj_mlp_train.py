@@ -21,7 +21,7 @@ def main(cfg):
     for subject in cfg['healthy_subjects']:
         print('------------------------------------\nSubject', subject,
               '\n------------------------------------')
-        # subject = 26
+        # subject = 25
         input_data, targets, long_labels = subject_nn_data(subject,
                                                            healthy_subjects=cfg['healthy_subjects'],
                                                            pd_subjects=cfg['pd_subjects'],
