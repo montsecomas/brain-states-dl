@@ -18,10 +18,14 @@ import torch
 def main(cfg):
     # for subject in [25]:
     # cfg = load_cfg()
-    for subject in cfg['healthy_subjects']:
+    run_pd = cfg['run_pd']
+    subjects_list = cfg['pd_subjects'] if run_pd else cfg['healthy_subjects']
+
+    for subject in subjects_list:
         print('------------------------------------\nSubject', subject,
               '\n------------------------------------')
-        # subject = 25
+        # subject = 25, healthy
+        # subject = 55, PD
         input_data, targets, long_labels = subject_nn_data(subject,
                                                            healthy_subjects=cfg['healthy_subjects'],
                                                            pd_subjects=cfg['pd_subjects'],
@@ -29,6 +33,7 @@ def main(cfg):
                                                            data_path=cfg['data_path'],
                                                            pd_dir=cfg['pd_dir'],
                                                            healthy_dir=cfg['healthy_dir'],
+                                                           on_med=cfg['model_on_med'],
                                                            use_silent_channels=cfg['use_silent_channels'],
                                                            mask_value=cfg['mask_value'])
 

@@ -15,9 +15,7 @@ if __name__ == '__main__':
         # subject = 26
         is_pd = is_pd_patient(subject, healthy_subjects=cfg['healthy_subjects'], pd_subjects=cfg['pd_subjects'])
 
-        sample = BrainStatesSubject(i_sub=subject, PD=is_pd, subset=cfg['mat_dict'],
-                                    data_path=cfg['data_path'], pd_dir=cfg['pd_dir'], healthy_dir=cfg['healthy_dir'],
-                                    use_silent_channels=cfg['use_silent_channels'])
+        sample = BrainStatesSubject(i_sub=subject, PD=is_pd, cfg=cfg)
         flat_data, flat_pks, is_pd = sample.run_pipeline()
 
         sample_featuring = BrainStatesFeaturing(input_ts=flat_data, input_labels=flat_pks, pd_sub=is_pd,

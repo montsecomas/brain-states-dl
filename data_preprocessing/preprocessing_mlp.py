@@ -10,14 +10,15 @@ from data_preprocessing.preprocess_module import BrainStatesSubject, BrainStates
 if __name__ == '__main__':
 
     cfg = load_cfg()
+    run_pd = cfg['run_pd']
+    subjects_list = cfg['pd_subjects'] if run_pd else cfg['healthy_subjects']
 
-    for subject in cfg['healthy_subjects']:
-        # subject = 25
+    for subject in subjects_list:
+        # subject = 25, healthy
+        # subject = 55, PD
         is_pd = is_pd_patient(subject, healthy_subjects=cfg['healthy_subjects'], pd_subjects=cfg['pd_subjects'])
 
-        sample = BrainStatesSubject(i_sub=subject, PD=is_pd, subset=cfg['mat_dict'],
-                                    data_path=cfg['data_path'], pd_dir=cfg['pd_dir'], healthy_dir=cfg['healthy_dir'],
-                                    use_silent_channels=cfg['use_silent_channels'])
+        sample = BrainStatesSubject(i_sub=subject, PD=is_pd, cfg=cfg)
         flat_data, flat_pks, is_pd, invalid_ch = sample.run_pipeline()
         np.save(processed_data_path(subject_id=subject, is_pd=is_pd, use_silent_channels=False,
                                     feature_name='silent_channels', data_path=cfg['data_path'], pd_dir=cfg['pd_dir'],

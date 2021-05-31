@@ -11,7 +11,7 @@ from scipy.ndimage import gaussian_filter
 
 
 class BrainStatesSubject:
-    def __init__(self, i_sub, PD, data_path, pd_dir, healthy_dir, subset='dataSorted', use_silent_channels=False):
+    def __init__(self, i_sub, PD, cfg):
         """
         The class works under the assumption that the raw data's dimensions are sorted as follows:
         (N_features, T_milliseconds, trials, x), where x:
@@ -22,23 +22,21 @@ class BrainStatesSubject:
         channels
         """
         self.i_sub = i_sub
-        self.subset = subset
-        self.use_silent_channels = use_silent_channels
+        self.subset = cfg['mat_dict']
+        self.use_silent_channels = cfg['use_silent_channels']
         self.N_MOTIV = 3
         self.PD = PD
-        self.data_path = data_path
-        self.pd_dir = pd_dir
-        self.healthy_dir = healthy_dir
+        self.data_path = cfg['data_path']
+        self.pd_dir = cfg['pd_dir']
+        self.pd_ses_order = cfg['pd_ses_order']
+        self.healthy_dir = cfg['healthy_dir']
         self.input_path = raw_input_path(i_sub, is_pd=self.PD, data_path=self.data_path, pd_dir=self.pd_dir,
                                          healthy_dir=self.healthy_dir)
 
-        if self.PD:
-            # TODO: Create self variable to indicate if there are two sessions or only off-med
-            subject_string = 'Parkinson subject.'
-        else:
-            subject_string = 'Healthy subject.'
+        subject_string = 'Parkinson subject.' if self.PD else 'Healthy subject.'
         print('------------------------------------\nSubject', i_sub, '-', subject_string,
               '\n------------------------------------')
+
         if self.subset == 'dataSorted':
             self.raw_data = sio.loadmat(self.input_path)[self.subset]
         elif self.subset == 'ica':
@@ -68,19 +66,30 @@ class BrainStatesSubject:
     def _discard_channels(self, data):
         # discard silent channels
         # input data must have flatten session dimension: (electrodes, ms, trials, motiv x session x block)
-        invalid_ch_s0 = np.logical_or(np.abs(data[:, :, 0, 0]).max(axis=1) == 0,
-                                      np.isnan(data[:, 0, 0, 0]))
         if self.PD:
-            invalid_ch_s1 = np.logical_or(np.abs(data[:, :, 0, 0]).max(axis=1) == 0,
-                                          np.isnan(data[:, 0, 0, 0]))
+            invalid_ch_s0 = np.logical_or(np.abs(data[:, :, 0, 0, self.pd_ses_order[self.i_sub][0]]).max(axis=1) == 0,
+                                          np.isnan(data[:, 0, 0, 0, self.pd_ses_order[self.i_sub][0]]))
+            invalid_ch_s1 = np.logical_or(np.abs(data[:, :, 0, 0, self.pd_ses_order[self.i_sub][1]]).max(axis=1) == 0,
+                                          np.isnan(data[:, 0, 0, 0, self.pd_ses_order[self.i_sub][1]]))
+
+            invalid_ch = np.logical_or(invalid_ch_s0, invalid_ch_s1)
+            valid_ch = np.logical_not(invalid_ch)
+            cleaned_data = data[valid_ch, :, :, :, :]
+            N = valid_ch.sum()
+            print(N, 'healthy channels out of ', data.shape[0])
+
         else:
+            invalid_ch_s0 = np.logical_or(np.abs(data[:, :, 0, 0]).max(axis=1) == 0,
+                                          np.isnan(data[:, 0, 0, 0]))
             invalid_ch_s1 = np.logical_or(np.abs(data[:, :, 0, 1]).max(axis=1) == 0,
                                           np.isnan(data[:, 0, 0, 1]))
-        invalid_ch = np.logical_or(invalid_ch_s0, invalid_ch_s1)
-        valid_ch = np.logical_not(invalid_ch)
-        cleaned_data = data[valid_ch, :, :, :]
-        N = valid_ch.sum()
-        print(N, 'healthy channels out of ', data.shape[0])
+
+            invalid_ch = np.logical_or(invalid_ch_s0, invalid_ch_s1)
+            valid_ch = np.logical_not(invalid_ch)
+            cleaned_data = data[valid_ch, :, :, :]
+            N = valid_ch.sum()
+            print(N, 'healthy channels out of ', data.shape[0])
+
         return cleaned_data, N, invalid_ch
 
     def _process_data_sorted(self):
@@ -93,10 +102,15 @@ class BrainStatesSubject:
         """
         n, t, trials = self.raw_data.shape[0], self.raw_data.shape[1], self.raw_data.shape[2]
         if self.PD:
-            # TODO 1: flatten session dimension (checking if both exist, paying attention to the order of dimensions)
-            # TODO 2: filter silent channels
-            red_n = n
-            subsets = [0, 0]
+            if self.use_silent_channels:
+                clean_channels, red_n = self.raw_data, n
+                _, _, invalid_ch = self._discard_channels(self.raw_data)
+            else:
+                clean_channels, red_n, invalid_ch = self._discard_channels(self.raw_data)
+
+            session_onmeds = clean_channels[:, :, :, :, self.pd_ses_order[self.i_sub][0]]
+            session_offmeds = clean_channels[:, :, :, :, self.pd_ses_order[self.i_sub][1]]
+            subsets = [session_onmeds, session_offmeds]
         else:
             if self.use_silent_channels:
                 clean_channels, red_n = self.raw_data, n
@@ -131,12 +145,8 @@ class BrainStatesSubject:
         :return: two arrays of dimensions (sess x rg x n_motiv x trials, MS, N) and (sess x rg x n_motiv x trials, 2)
         """
         if self.PD:
-            if data.shape[0] > 1:
-                id_list = [['off', 'on'], ['rg1', 'rg2'],
-                           list(np.arange(self.N_MOTIV).astype(str)), list((np.arange(data.shape[3]) + 1).astype(str))]
-            else:
-                id_list = [['off'], ['rg1', 'rg2'],
-                           list(np.arange(self.N_MOTIV).astype(str)), list((np.arange(data.shape[3]) + 1).astype(str))]
+            id_list = [['on', 'off'], ['rg1', 'rg2'],
+                       list(np.arange(self.N_MOTIV).astype(str)), list((np.arange(data.shape[3]) + 1).astype(str))]
         else:
             id_list = [['heal1', 'heal2'], ['rg1', 'rg2'],
                        list(np.arange(self.N_MOTIV).astype(str)), list((np.arange(data.shape[3]) + 1).astype(str))]

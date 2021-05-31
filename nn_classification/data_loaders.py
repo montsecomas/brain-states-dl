@@ -7,7 +7,7 @@ import os.path as osp
 
 
 def subject_nn_data(subject, healthy_subjects, pd_subjects, data_path, pd_dir, healthy_dir,
-                    use_silent_channels=True, mask_value=None, feature_name=None, conv=False):
+                    on_med=False, use_silent_channels=True, mask_value=None, feature_name=None, conv=False):
     is_pd = is_pd_patient(subject, healthy_subjects, pd_subjects)
     input_data = np.load(processed_data_path(subject_id=subject, is_pd=is_pd, use_silent_channels=use_silent_channels,
                                              feature_name=feature_name, data_path=data_path, pd_dir=pd_dir,
@@ -18,16 +18,24 @@ def subject_nn_data(subject, healthy_subjects, pd_subjects, data_path, pd_dir, h
                                              feature_name='silent_channels', data_path=data_path, pd_dir=pd_dir,
                                              healthy_dir=healthy_dir))
 
+    if is_pd:
+        on_med_ind = np.char.find(np_labels[:, 1], 'on') == 0
+        ses_labels = np_labels[on_med_ind] if on_med else np_labels[~on_med_ind]
+        le = preprocessing.LabelEncoder()
+        le.fit(ses_labels[:, 1])
+        targets = le.transform(ses_labels[:, 1])
+        input_data = input_data[:, on_med_ind, :] if on_med else input_data[:, ~on_med_ind, :]
+    else:
+        le = preprocessing.LabelEncoder()
+        le.fit(np_labels[:, 1])
+        targets = le.transform(np_labels[:, 1])
+
     if conv:
         aux_invalid_ch = np.repeat(np.array([invalid_ch]), [3], axis=0).reshape(-1)
         ts_invalid_ch = np.repeat(np.array([aux_invalid_ch]), 3, axis=0) # TODO
         invalid_mask = False
     else:
         invalid_mask = np.tile(invalid_ch[None, None], (input_data.shape[0], input_data.shape[1], 1))
-
-    le = preprocessing.LabelEncoder()
-    le.fit(np_labels[:, 1])
-    targets = le.transform(np_labels[:, 1])
 
     if use_silent_channels:
         if mask_value == '-1':
