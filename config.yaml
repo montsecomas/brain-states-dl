@@ -1,5 +1,5 @@
 data_path: 'data'
-run_pd: True
+run_pd: True # True for running pipelines related with PD, False otherwise
 pd_dir: 'pd_sb'
 healthy_dir: 'healthy_sb'
 outputs_path: 'data_outputs'
@@ -13,7 +13,7 @@ mat_dict: 'dataSorted' # ica or dataSorted
 use_silent_channels: True # NO TOCAR
 pd_subjects: [55, 61, 64, 67]
 pd_ses_order: {55:[0,1], 61:[0,1], 64:[1,0], 67:[1,0]} # subject: on, off
-model_on_med: True
+model_on_med: False # applies when run_pd = True. True if using on-med data for classification, False for off-med
 healthy_subjects : [25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]
 batch_size: 32 #64 ss 128 cv for healthy subjects (single vs crosval) - 32 for pd
 n_hidden_nodes : 256
@@ -23,7 +23,7 @@ epochs: 80
 input_dropout: # >0 or None
 mlp_dropout: # >0 or None
 weight_decay: # >0 or None
-experiments_dir : 'exp_logs_pd_subjects'
+experiments_dir : 'exp_logs_subject_PD'
 pred_feature: 'pow_mean' # ic_mean or pow_mean
 mask_value: '0' # '-1', '0', 'mean' or None -- DEIXAR A 0 PER SER COMPARABLE AMB DROPOUT
 gamma_freq: False

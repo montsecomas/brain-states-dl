@@ -20,6 +20,10 @@ def main(cfg):
     # cfg = load_cfg()
     run_pd = cfg['run_pd']
     subjects_list = cfg['pd_subjects'] if run_pd else cfg['healthy_subjects']
+    if run_pd:
+        med_str = '-on-med' if cfg['model_on_med'] else '-off-med'
+    else:
+        med_str = ''
 
     for subject in subjects_list:
         print('------------------------------------\nSubject', subject,
@@ -41,7 +45,7 @@ def main(cfg):
         freqs_idx = [0, 1, 2]
         # freq = 0
 
-        split_idx_path = osp.join(cfg['outputs_path'], cfg['splits_path'], f'{subject}-mlp.npy')
+        split_idx_path = osp.join(cfg['outputs_path'], cfg['splits_path'], f'{subject}{med_str}-mlp.npy')
 
         if osp.exists(split_idx_path):
             indices = np.load(split_idx_path)
@@ -84,7 +88,7 @@ def main(cfg):
             prefix = 'pow-mean' if (cfg['mat_dict'] == 'dataSorted') else 'IC-MEAN'
             logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{subject}"),
                                        name=f"freq-{freqs[freq]}-single_subject",
-                                       version=f"MLP-{prefix}_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+                                       version=f"MLP{med_str}-{prefix}_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
             trainer = pl.Trainer(max_epochs=cfg['epochs'],
                                  logger=logger)
             trainer.fit(model, train_loader, val_loader)
