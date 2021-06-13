@@ -9,10 +9,17 @@ from utils.file_utils import load_cfg
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from torch import nn
+import os.path as osp
 
 
 if __name__ == '__main__':
     cfg = load_cfg()
+    run_pd = cfg['run_pd']
+    subjects_list = cfg['pd_subjects'] if run_pd else cfg['healthy_subjects']
+    if run_pd:
+        med_str = '-on-med' if cfg['model_on_med'] else '-off-med'
+    else:
+        med_str = ''
 
     subject = 25
     input_data, targets, long_labels = subject_nn_data(subject,
@@ -27,9 +34,16 @@ if __name__ == '__main__':
                                                        conv=True)
 
     # train-val split
-    indices = np.arange(input_data.shape[1])
-    np.random.shuffle(indices)
-    split_idx = int(input_data.shape[1]*0.9)
+    split_idx_path = osp.join(cfg['outputs_path'], cfg['splits_path'], f'{subject}{med_str}-mlp.npy')
+
+    if osp.exists(split_idx_path):
+        indices = np.load(split_idx_path)
+    else:
+        indices = np.arange(input_data.shape[1])
+        np.random.shuffle(indices)
+        np.save(split_idx_path, indices)
+
+    split_idx = int(input_data.shape[1] * 0.9)
 
     if cfg['gamma_freq']:
         input_data = input_data[:, 120:, :]
