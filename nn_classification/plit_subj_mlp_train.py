@@ -11,7 +11,6 @@ from utils.file_utils import load_cfg
 import numpy as np
 from datetime import datetime
 import os.path as osp
-import os
 import torch
 
 
@@ -28,7 +27,7 @@ def main(cfg):
     for subject in subjects_list:
         print('------------------------------------\nSubject', subject,
               '\n------------------------------------')
-        # subject = 25, healthy
+        # subject = 35, healthy
         # subject = 55, PD
         input_data, targets, long_labels = subject_nn_data(subject,
                                                            healthy_subjects=cfg['healthy_subjects'],
@@ -55,6 +54,14 @@ def main(cfg):
             np.save(split_idx_path, indices)
 
         split_idx = int(input_data.shape[1] * 0.9)
+
+        # train_lab = long_labels[indices[:split_idx], 1]
+        # val_lab = long_labels[indices[split_idx:], 1]
+        # (tr_unique, tr_counts) = np.unique(train_lab, return_counts=True)
+        # (val_unique, val_counts) = np.unique(val_lab, return_counts=True)
+        # tr_frequencies = np.asarray((tr_unique, tr_counts)).T
+        # val_frequencies = np.asarray((val_unique, val_counts)).T
+        # train_lab.shape, val_lab.shape, long_labels.shape[0], tr_frequencies, val_frequencies, np.unique(long_labels[:,1], return_counts=True)
 
         for freq in freqs_idx:
             # train-val split
@@ -86,9 +93,11 @@ def main(cfg):
 
             # training
             prefix = 'pow-mean' if (cfg['mat_dict'] == 'dataSorted') else 'IC-MEAN'
+            hparams_str = f"bs{cfg['batch_size']}_hn{cfg['n_hidden_nodes']}_lr{cfg['lr']}"
             logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{subject}"),
                                        name=f"freq-{freqs[freq]}-single_subject",
-                                       version=f"MLP{med_str}-{prefix}_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+                                       version=f"MLP{med_str}-{prefix}_{hparams_str}_"
+                                               f"{datetime.now().strftime('%Y-%m-%d_%H%M')}")
             trainer = pl.Trainer(max_epochs=cfg['epochs'],
                                  logger=logger)
             trainer.fit(model, train_loader, val_loader)
