@@ -17,6 +17,7 @@ import torch
 
 def main(cfg):
     # for subject in [25]:
+    # cfg = load_cfg()
     for subject in cfg['healthy_subjects']:
         print('------------------------------------\nSubject', subject,
               '\n------------------------------------')
@@ -28,32 +29,39 @@ def main(cfg):
                                                            data_path=cfg['data_path'],
                                                            pd_dir=cfg['pd_dir'],
                                                            healthy_dir=cfg['healthy_dir'],
-                                                           use_silent_channels=True,
-                                                           mask_value='0',
+                                                           use_silent_channels=cfg['use_silent_channels'],
+                                                           mask_value=cfg['mask_value'],
                                                            conv=True)
 
         # train-val split
-        indices = np.arange(input_data.shape[0])
-        np.random.shuffle(indices)
-        split_idx = int(input_data.shape[0]*0.9)
+        split_idx_path = osp.join(cfg['outputs_path'], cfg['splits_path'], f'{subject}-mlp.npy')
+
+        if osp.exists(split_idx_path):
+            indices = np.load(split_idx_path)
+        else:
+            indices = np.arange(input_data.shape[1])
+            np.random.shuffle(indices)
+            np.save(split_idx_path, indices)
+
+        split_idx = int(input_data.shape[0] * 0.9)
 
         if cfg['sep_freqs']:
             freqs_idx = [0, 1, 2]
             freq_names = ['alpha', 'beta', 'gamma']
-            freq_prefixes = [f'freq-{freq_name}' for freq_name in freq_names]
+            # freqs_idx = [2]
+            # freq_names = ['gamma']
         else:
             freqs_idx = [0]
             freq_names = [None]
-            freq_prefixes = ['all-freqs']
 
         for freq_id in freqs_idx:
-            if len(freqs_idx) == 1:
+            if freq_names[0] is None:
                 input_data_freq = input_data
             else:
                 input_data_freq = input_data[:, freq_id * 60:freq_id * 60 + 60, :]
 
-            freq_prefix = freq_prefixes[freq_id]
             freq_name = freq_names[freq_id]
+            # freq_name = freq_names[0]
 
             input_data_freq = sequence_downsampling(input_data_freq, cfg['downsampling_step'])
 
@@ -79,9 +87,11 @@ def main(cfg):
             model = LitConvClassifier(hparams=idx_hparams)
 
             # training
+            hparams_str = f"bs{cfg['batch_size']}_lr{cfg['lr']}"
             logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{subject}"),
-                                       name=f"{freq_prefix}-dropout{str(cfg['input_dropout'])}-single_subject",
-                                       version=f"CNN_{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+                                       name=f"freq-{freq_name}-single_subject",
+                                       version=f"CNN_{hparams_str}_"
+                                               f"{datetime.now().strftime('%Y-%m-%d_%H%M')}")
 
             trainer = pl.Trainer(max_epochs=cfg['epochs'],
                                  logger=logger, deterministic=True)
