@@ -32,8 +32,8 @@ def subject_nn_data(subject, healthy_subjects, pd_subjects, data_path, pd_dir, h
 
     if conv:
         aux_invalid_ch = np.repeat(np.array([invalid_ch]), [3], axis=0).reshape(-1)
-        ts_invalid_ch = np.repeat(np.array([aux_invalid_ch]), 3, axis=0) # TODO
-        invalid_mask = False
+        ts_invalid_ch = np.tile(aux_invalid_ch[None], (input_data.shape[2], 1)).T
+        invalid_mask = np.tile(ts_invalid_ch[None], (input_data.shape[0], 1, 1))
     else:
         invalid_mask = np.tile(invalid_ch[None, None], (input_data.shape[0], input_data.shape[1], 1))
 
@@ -42,7 +42,9 @@ def subject_nn_data(subject, healthy_subjects, pd_subjects, data_path, pd_dir, h
             # input_data[np.isnan(input_data)] = float(-1)
             input_data[invalid_mask] = float(-1)
         if mask_value == '0':
-            # input_data[np.isnan(input_data)] = float(0)
+            # if conv:
+            #     input_data[np.isnan(input_data)] = float(0)
+            # else:
             input_data[invalid_mask] = float(0)
         elif mask_value == 'mean':
             inds = np.where(np.isnan(input_data))
@@ -82,9 +84,13 @@ class SingleSubjectNNData:
         self.cfg = cfg
         self.force_read_split = force_read_split
         self.read_silent_channels = read_silent_channels
-        self.split_idx_path = osp.join(self.cfg['outputs_path'],
-                                       self.cfg['splits_path'],
-                                       f'{self.subject}-mlp.npy')
+        if cfg['run_pd']:
+            self.med_str = '-on-med' if cfg['model_on_med'] else '-off-med'
+        else:
+            self.med_str = ''
+        self.split_idx_path = osp.join(cfg['outputs_path'],
+                                       cfg['splits_path'],
+                                       f'{subject}{self.med_str}-mlp.npy')
 
         self.freqs = ['alpha', 'beta', 'gamma']
         self.freqs_idx = [0, 1, 2]
@@ -100,6 +106,7 @@ class SingleSubjectNNData:
                                                            data_path=self.cfg['data_path'],
                                                            pd_dir=self.cfg['pd_dir'],
                                                            healthy_dir=self.cfg['healthy_dir'],
+                                                           on_med=self.cfg['model_on_med'],
                                                            use_silent_channels=self.read_silent_channels,
                                                            mask_value=self.cfg['mask_value'])
 
@@ -112,14 +119,17 @@ class SingleSubjectNNData:
 
         return input_data, targets, indices
 
-    def mlp_ds_loaders(self, freq):
+    def mlp_ds_loaders(self, freq, random_test=False):
         train_data = FlatEEGDataset(np_input=self.input_dataset[freq, self.indices[:self.split_idx], :],
                                     np_targets=self.targets[self.indices[:self.split_idx]])
         val_data = FlatEEGDataset(np_input=self.input_dataset[freq, self.indices[self.split_idx:], :],
                                   np_targets=self.targets[self.indices[self.split_idx:]])
 
         # data loaders
-        train_loader = DataLoader(train_data, batch_size=self.cfg['batch_size'], shuffle=True, num_workers=0)
+        if random_test:
+            train_loader = DataLoader(train_data, batch_size=len(train_data), shuffle=True, num_workers=0)
+        else:
+            train_loader = DataLoader(train_data, batch_size=self.cfg['batch_size'], shuffle=True, num_workers=0)
         val_loader = DataLoader(val_data, batch_size=len(val_data), shuffle=False, num_workers=0)
 
         return train_loader, val_loader
