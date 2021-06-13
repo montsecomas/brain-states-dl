@@ -39,7 +39,7 @@ def main(cfg):
         if osp.exists(split_idx_path):
             indices = np.load(split_idx_path)
         else:
-            indices = np.arange(input_data.shape[1])
+            indices = np.arange(input_data.shape[0])
             np.random.shuffle(indices)
             np.save(split_idx_path, indices)
 

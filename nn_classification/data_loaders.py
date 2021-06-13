@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from utils.file_utils import is_pd_patient, processed_data_path, processed_labels_path
+from data_preprocessing.preprocess_module import sequence_downsampling
 from sklearn import preprocessing
 from torch.utils.data import DataLoader
 import os.path as osp
@@ -79,11 +80,12 @@ class FullEEGDataset(torch.utils.data.Dataset):
 
 
 class SingleSubjectNNData:
-    def __init__(self, subject, classifier, cfg, read_silent_channels=True, force_read_split=False):
+    def __init__(self, subject, classifier, cfg, read_silent_channels=True, force_read_split=False, is_cnn=False):
         self.subject = subject
         self.cfg = cfg
         self.force_read_split = force_read_split
         self.read_silent_channels = read_silent_channels
+        self.is_cnn = is_cnn
         if cfg['run_pd']:
             self.med_str = '-on-med' if cfg['model_on_med'] else '-off-med'
         else:
@@ -96,7 +98,7 @@ class SingleSubjectNNData:
         self.freqs_idx = [0, 1, 2]
         if classifier == 'mlp':
             self.input_dataset, self.targets, self.indices = self.mlp_full_ds()
-            self.split_idx = int(self.input_dataset.shape[1] * 0.9)
+            self.split_idx = int(self.input_dataset.shape[0] * 0.9) if self.is_cnn else int(self.input_dataset.shape[1] * 0.9)
 
     def mlp_full_ds(self):
         input_data, targets, long_labels = subject_nn_data(self.subject,
@@ -108,22 +110,32 @@ class SingleSubjectNNData:
                                                            healthy_dir=self.cfg['healthy_dir'],
                                                            on_med=self.cfg['model_on_med'],
                                                            use_silent_channels=self.read_silent_channels,
-                                                           mask_value=self.cfg['mask_value'])
+                                                           mask_value=self.cfg['mask_value'],
+                                                           conv=self.is_cnn)
 
         if self.force_read_split or osp.exists(self.split_idx_path):
             indices = np.load(self.split_idx_path)
         else:
-            indices = np.arange(input_data.shape[1])
+            indices = np.arange(input_data.shape[1]) if not self.is_cnn else np.arange(input_data.shape[0])
             np.random.shuffle(indices)
             np.save(self.split_idx_path, indices)
 
         return input_data, targets, indices
 
     def mlp_ds_loaders(self, freq, random_test=False):
-        train_data = FlatEEGDataset(np_input=self.input_dataset[freq, self.indices[:self.split_idx], :],
-                                    np_targets=self.targets[self.indices[:self.split_idx]])
-        val_data = FlatEEGDataset(np_input=self.input_dataset[freq, self.indices[self.split_idx:], :],
-                                  np_targets=self.targets[self.indices[self.split_idx:]])
+
+        if not self.is_cnn:
+            train_data = FlatEEGDataset(np_input=self.input_dataset[freq, self.indices[:self.split_idx], :],
+                                        np_targets=self.targets[self.indices[:self.split_idx]])
+            val_data = FlatEEGDataset(np_input=self.input_dataset[freq, self.indices[self.split_idx:], :],
+                                      np_targets=self.targets[self.indices[self.split_idx:]])
+        else:
+            input_data_freq = self.input_dataset[:, freq * 60:freq * 60 + 60, :]
+            input_data_freq = sequence_downsampling(input_data_freq, self.cfg['downsampling_step'])
+            train_data = FullEEGDataset(np_input=input_data_freq[self.indices[:self.split_idx], :, :],
+                                        np_targets=self.targets[self.indices[:self.split_idx]])
+            val_data = FullEEGDataset(np_input=input_data_freq[self.indices[self.split_idx:], :, :],
+                                      np_targets=self.targets[self.indices[self.split_idx:]])
 
         # data loaders
         if random_test:
