@@ -1,5 +1,7 @@
 data_path: 'data'
 run_pd: False # True for running pipelines related with PD, False otherwise
+subject_crossval: False
+model_on_med: True # applies when run_pd = True. True if using on-med data for classification, False for off-med
 pd_dir: 'pd_sb'
 healthy_dir: 'healthy_sb'
 outputs_path: 'data_outputs'
@@ -15,14 +17,13 @@ interpret_imp_mlp: 'mlp_importances-healthy'
 interpret_imp_mlp_pd: 'mlp_importances-pd'
 mat_dict: 'dataSorted' # ica or dataSorted
 use_silent_channels: True # NO TOCAR
-pd_subjects: [55, 61, 64, 67] # [55, 58, 59, 60, 61, 62, 64, 65, 67, 68]
-pd_ses_order: {55:[0,1], 61:[0,1], 64:[1,0], 67:[1,0]} # subject: on, off
-pd_ses_order_aux: {55:[0,1], 58:[0,1], 59:[1,0], _60_:[1,0], 61:[0,1], _62_:[0,1], 64:[1,0], 65:[1,0], 67:[1,0], _68_:[1]} # subject: on, off
-model_on_med: True # applies when run_pd = True. True if using on-med data for classification, False for off-med
+pd_subjects: [55, 58, 59, 61, 62, 64, 67, 68] #[55, 58, 59, 61, 62, 64, 65, 67, 68]
+pd_ses_order_aux: {55:[0,1], 58:[0,1], 59:[1,0],61:[0,1], 62:[1,1], 64:[1,0], 65:[1,0], 67:[1,0], 68:[1,1]} # subject: on, off
+pd_ses_order: {55:[0,1], 58:[0,1], 59:[1,0],61:[0,1], 62:[1,1], 64:[1,0], 67:[1,0], 68:[1,1]} # subject: on, off
 healthy_subjects : [25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]
-batch_size: 64 #64 ss 128 cv for healthy subjects (single vs crosval) - 32 for pd
+batch_size: 32 #64 ss 128 cv for healthy subjects (single vs crosval) - 32 for pd
 n_hidden_nodes : 128 # 128, 256 for healthy and pd resp.
-n_hidden_layers: 2
+n_hidden_layers: 1
 lr: 0.001
 epochs: 80
 input_dropout: # >0 or None

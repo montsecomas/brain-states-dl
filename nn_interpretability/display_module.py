@@ -218,8 +218,8 @@ def ig_results_loc_surf_maps(subject, freq_name, cfg, target_dfs, electrodes_pos
             plt.colorbar()
             if session_sufix == '':
                 plt.clim(0, 0.19)
-            # else:
-            #     plt.clim(0, 0.19)
+            else:
+                plt.clim(0, 0.09)
             med_str = '' if session_sufix == '' else f'{session_sufix} Medication '
             pd_sufix = '' if session_sufix == '' else '_pd'
             plt.title(f'MLP: F.{measure} Importance with {method} \nSubject {subject} {med_str}- '

@@ -7,14 +7,17 @@ from utils.file_utils import load_cfg
 import torch
 from torch.nn import functional as F
 from sklearn.metrics import roc_auc_score
+import glob
 
-RAND_INIT = True
-MLP = False
+RAND_INIT = False # to check results with random initialization of the network
+MLP = True # to check results of the MLP (if False, CNN)
+mod = 'MLP' if MLP else 'CNN'
 
 training_aucs = []
 validation_aucs = []
 training_accs = []
 validation_accs = []
+targets_list = []
 
 cfg = load_cfg()
 ckpt_paths = load_cfg('nn_interpretability/ckpt_paths.yml')
@@ -34,20 +37,23 @@ else:
 
 for subject in subjects_list:
     # subject = 25
+    # subject = 58
     if cfg['run_pd']:
         subject_path = f'{ckpt_paths["mlp-single-pd-subject-logs"]}/subject-{subject}/'
     else:
-        subject_path = f'{ckpt_paths["mlp-single-healthy-subject-logs"]}/subject-{subject}/'
+        subject_path = f'{ckpt_paths["mlp-single-healthy-subject-logs"]}/subject-{subject}/' if MLP else \
+            f'{ckpt_paths["mlp-single-healthy-subject-crossval"]}/subject-{subject}/'
 
     # ---- LOAD TRAIN VAL DATASET ----
     subject_data = SingleSubjectNNData(subject=subject, classifier='mlp', cfg=cfg,
                                        read_silent_channels=True, force_read_split=True,
                                        is_cnn=(not MLP))
+    targets_list.append(subject_data.targets)
 
     for FREQ in freq_ids.keys():
         # FREQ = 'gamma'
-        model_ckpt = f'ss-{FREQ}-mlp-pow{session}' if MLP else f'ss-{FREQ}-cnn-pow'
-        ckpt_path = ckpt_paths[subject][model_ckpt]
+        # model_ckpt = f'ss-{FREQ}-mlp-pow{session}' if MLP else f'ss-{FREQ}-cnn-pow'
+        # ckpt_path = ckpt_paths[subject][model_ckpt]
         if RAND_INIT:
             if MLP:
                 idx_hparams = {'n_features': subject_data.input_dataset.shape[2],
@@ -75,8 +81,8 @@ for subject in subjects_list:
 
             model = LitConvClassifier(hparams=idx_hparams)
         else:
-            model = load_model(osp.join(subject_path, ckpt_path), model='mlp') if MLP else \
-                load_model(osp.join(subject_path, ckpt_path), model='cnn')
+            mpathc = glob.glob(subject_path+f'freq-{FREQ}-single_subject/{mod}{session}*/checkpoints/*.ckpt')[0]
+            model = load_model(mpathc, model='mlp') if MLP else load_model(mpathc, model='cnn')
 
         freq_id = freq_ids[FREQ]
         train_loader, val_loader = subject_data.mlp_ds_loaders(freq=freq_id)  # 0 alpha, 1 beta, 2 gamma
@@ -126,3 +132,12 @@ if PRINT_SILENT_CHAN:
         silent_chan = np.load(osp.join(cfg['data_path'], inputs_path, f'res_subject_{subject}',
                                                f'silent-channels-{subject}.npy'))
         print(f'Subject {subject}, active={len(silent_chan)-np.sum(silent_chan)}, silent={np.sum(silent_chan)}')
+
+PRINT_TRIALS = True
+if PRINT_TRIALS:
+    med_str = 'On medication' if cfg['model_on_med'] else 'Off medication'
+    print(med_str)
+    for i, subject in enumerate(subjects_list):
+        print(f'Subject {subject}')
+        print(f'Trials: {targets_list[i].shape} - Motiv 0: {np.sum(targets_list[i]==0)} '
+              f'- Motiv 1: {np.sum(targets_list[i]==1)} - Motiv 2: {np.sum(targets_list[i]==2)}')

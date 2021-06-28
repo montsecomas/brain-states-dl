@@ -42,65 +42,66 @@ def main(cfg):
 
         freqs = ['alpha', 'beta', 'gamma']
         freqs_idx = [0, 1, 2]
-        # freq = 0
 
         split_idx_path = osp.join(cfg['outputs_path'], cfg['splits_path'], f'{subject}{med_str}-mlp.npy')
 
-        if osp.exists(split_idx_path):
-            indices = np.load(split_idx_path)
-        else:
+        indices_shuf = []
+        if cfg['subject_crossval']:
             indices = np.arange(input_data.shape[1])
-            np.random.shuffle(indices)
-            np.save(split_idx_path, indices)
+            for i in [1, 2, 3, 4, 5]:
+                np.random.shuffle(indices)
+                indices_shuf.append(indices.copy())
+        else:
+            if osp.exists(split_idx_path):
+                indices = np.load(split_idx_path)
+            else:
+                indices = np.arange(input_data.shape[1])
+                np.random.shuffle(indices)
+                np.save(split_idx_path, indices)
+            indices_shuf.append(indices)
 
         split_idx = int(input_data.shape[1] * 0.9)
 
-        # train_lab = long_labels[indices[:split_idx], 1]
-        # val_lab = long_labels[indices[split_idx:], 1]
-        # (tr_unique, tr_counts) = np.unique(train_lab, return_counts=True)
-        # (val_unique, val_counts) = np.unique(val_lab, return_counts=True)
-        # tr_frequencies = np.asarray((tr_unique, tr_counts)).T
-        # val_frequencies = np.asarray((val_unique, val_counts)).T
-        # train_lab.shape, val_lab.shape, long_labels.shape[0], tr_frequencies, val_frequencies, np.unique(long_labels[:,1], return_counts=True)
+        for shuf, indices in enumerate(indices_shuf):
+            for freq in freqs_idx:
+                # train-val split
 
-        for freq in freqs_idx:
-            # train-val split
+                train_data = FlatEEGDataset(np_input=input_data[freq, indices[:split_idx], :],
+                                            np_targets=targets[indices[:split_idx]])
+                val_data = FlatEEGDataset(np_input=input_data[freq, indices[split_idx:], :],
+                                          np_targets=targets[indices[split_idx:]])
 
-            train_data = FlatEEGDataset(np_input=input_data[freq, indices[:split_idx], :],
-                                        np_targets=targets[indices[:split_idx]])
-            val_data = FlatEEGDataset(np_input=input_data[freq, indices[split_idx:], :],
-                                      np_targets=targets[indices[split_idx:]])
+                # data loaders
+                train_loader = DataLoader(train_data, batch_size=cfg['batch_size'], shuffle=True, num_workers=0)
+                val_loader = DataLoader(val_data, batch_size=len(val_data), shuffle=False, num_workers=0)
 
-            # data loaders
-            train_loader = DataLoader(train_data, batch_size=cfg['batch_size'], shuffle=True, num_workers=0)
-            val_loader = DataLoader(val_data, batch_size=len(val_data), shuffle=False, num_workers=0)
+                # model
+                idx_hparams = {'n_features': input_data.shape[2],
+                               'n_states': len(np.unique(targets)),
+                               'n_hidden_nodes': cfg['n_hidden_nodes'],
+                               'n_hidden_layers': cfg['n_hidden_layers'],
+                               'lr': cfg['lr'],
+                               'epochs': cfg['epochs'],
+                               'freq_name': freqs[freq],
+                               'pred_feature': cfg['pred_feature'],
+                               'input_dropout': cfg['input_dropout'],
+                               'mlp_dropout': cfg['mlp_dropout'],
+                               'weight_decay': cfg['weight_decay'],
+                               'num_classes': 3}
 
-            # model
-            idx_hparams = {'n_features': input_data.shape[2],
-                           'n_states': len(np.unique(targets)),
-                           'n_hidden_nodes': cfg['n_hidden_nodes'],
-                           'n_hidden_layers': cfg['n_hidden_layers'],
-                           'lr': cfg['lr'],
-                           'epochs': cfg['epochs'],
-                           'freq_name': freqs[freq],
-                           'pred_feature': cfg['pred_feature'],
-                           'input_dropout': cfg['input_dropout'],
-                           'mlp_dropout': cfg['mlp_dropout'],
-                           'weight_decay': cfg['weight_decay'],
-                           'num_classes': 3}
+                model = LitMlpClassifier(hparams=idx_hparams)
 
-            model = LitMlpClassifier(hparams=idx_hparams)
-
-            # training
-            prefix = 'pow-mean' if (cfg['mat_dict'] == 'dataSorted') else 'IC-MEAN'
-            hparams_str = f"bs{cfg['batch_size']}_hn{cfg['n_hidden_nodes']}_lr{cfg['lr']}"
-            logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{subject}"),
-                                       name=f"freq-{freqs[freq]}-single_subject",
-                                       version=f"MLP{med_str}-{prefix}_{hparams_str}_"
-                                               f"{datetime.now().strftime('%Y-%m-%d_%H%M')}")
-            trainer = pl.Trainer(max_epochs=cfg['epochs'],
-                                 logger=logger)
-            trainer.fit(model, train_loader, val_loader)
+                # training
+                cv = f'split{shuf}' if cfg['subject_crossval'] else ''
+                prefix = 'pow-mean' if (cfg['mat_dict'] == 'dataSorted') else 'IC-MEAN'
+                hparams_str = f"bs{cfg['batch_size']}_hn{cfg['n_hidden_nodes']}_lr{cfg['lr']}"
+                logger = TensorBoardLogger(save_dir=osp.join(cfg['experiments_dir'], f"subject-{subject}"),
+                                           name=f"freq-{freqs[freq]}-single_subject",
+                                           version=f"MLP{cv}{med_str}-{prefix}_{hparams_str}_"
+                                                   f"{datetime.now().strftime('%Y-%m-%d_%H%M')}")
+                trainer = pl.Trainer(max_epochs=cfg['epochs'],
+                                     logger=logger)
+                trainer.fit(model, train_loader, val_loader)
 
 
 if __name__ == '__main__':

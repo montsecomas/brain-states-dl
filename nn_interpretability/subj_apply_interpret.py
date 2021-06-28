@@ -7,6 +7,7 @@ from nn_classification.data_loaders import SingleSubjectNNData
 from nn_interpretability.display_module import importances_results_df_beta, ig_results_loc_scatter_maps, \
     ig_results_loc_surf_maps, input_power_surf
 import os.path as osp
+import glob
 
 
 def compute_attributions(method, subject, freq_name, model, input_tensor, heatmaps_path, electrodes_pos,
@@ -96,9 +97,8 @@ def run_attributions_bloc(cfg, ckpt_paths, draw_histograms, save_tables, draw_do
                                            read_silent_channels=True, force_read_split=True)
         for FREQ in freq_ids.keys():
             # FREQ = 'gamma'
-            model_ckpt = f'ss-{FREQ}-mlp-pow{session}'
-            ckpt_path = ckpt_paths[subject][model_ckpt]
-            model = load_model(osp.join(subject_path, ckpt_path), model='mlp')
+            mpathc = glob.glob(subject_path + f'freq-{FREQ}-single_subject/MLP{session}*/checkpoints/*.ckpt')[0]
+            model = load_model(mpathc, model='mlp')
 
             freq_id = freq_ids[FREQ]
             train_loader, val_loader = subject_data.mlp_ds_loaders(freq=freq_id)  # 0 alpha, 1 beta, 2 gamma

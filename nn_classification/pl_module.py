@@ -26,7 +26,7 @@ class LitMlpClassifier(pl.LightningModule):
         self.mlp_dropout = self.hparams['mlp_dropout']
         self.feature = 'pow' if self.pred_feature == 'pow_mean' else 'ic'
         self.mlp = MLP(input_dim=self.hparams['n_features'], hidden_dim=self.hparams['n_hidden_nodes'],
-                       output_dim=self.hparams['n_states'], num_layers=self.hparams['n_hidden_layers'],
+                       output_dim=self.hparams['n_states'], num_layers=self.hparams['n_hidden_layers']+1,
                        dropout=self.mlp_dropout)
 
         # Define sigmoid activation and loss criterion

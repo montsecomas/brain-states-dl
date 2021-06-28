@@ -8,6 +8,7 @@ from nn_classification.pl_module import LitConvClassifier
 from utils.file_utils import load_cfg
 import numpy as np
 from scipy.ndimage import gaussian_filter
+from data_preprocessing.preprocess_module import sequence_downsampling
 from torch import nn
 import os.path as osp
 
@@ -39,29 +40,34 @@ if __name__ == '__main__':
     if osp.exists(split_idx_path):
         indices = np.load(split_idx_path)
     else:
-        indices = np.arange(input_data.shape[1])
+        indices = np.arange(input_data.shape[0])
         np.random.shuffle(indices)
         np.save(split_idx_path, indices)
 
-    split_idx = int(input_data.shape[1] * 0.9)
+    split_idx = int(input_data.shape[0] * 0.9)
 
-    if cfg['gamma_freq']:
-        input_data = input_data[:, 120:, :]
-        freq_prefix = 'freq-gamma-'
+    if cfg['sep_freqs']:
+        freqs_idx = [0, 1, 2]
+        freq_names = ['alpha', 'beta', 'gamma']
+        # freqs_idx = [2]
+        # freq_names = ['gamma']
     else:
-        freq_prefix = ''
+        freqs_idx = [0]
+        freq_names = [None]
 
-    # ts downsampling
-    # import matplotlib.pyplot as plt
-    # plt.plot(np.arange(1200), input_data[0,0,:])
-    # plt.plot(np.arange(1200)[::5], input_data[0,0,::5])
-    # plt.plot(np.arange(1200), gaussian_filter(input_data, sigma=(0, 0, 1))[0,0,:])
-    # plt.plot(np.arange(1200)[::5], gaussian_filter(input_data, sigma=(0, 0, 1))[0,0,::5])
-    input_data = gaussian_filter(input_data, sigma=(0, 0, 1))[:, :, ::cfg['downsampling_step']]
+    freq_id = 0
+    if freq_names[0] is None:
+        input_data_freq = input_data
+    else:
+        input_data_freq = input_data[:, freq_id * 60:freq_id * 60 + 60, :]
 
-    train_data = FullEEGDataset(np_input=input_data[indices[:split_idx], :, :],
+    freq_name = freq_names[freq_id]
+
+    input_data_freq = sequence_downsampling(input_data_freq, cfg['downsampling_step'])
+
+    train_data = FullEEGDataset(np_input=input_data_freq[indices[:split_idx], :, :],
                                 np_targets=targets[indices[:split_idx]])
-    val_data = FullEEGDataset(np_input=input_data[indices[split_idx:], :, :],
+    val_data = FullEEGDataset(np_input=input_data_freq[indices[split_idx:], :, :],
                               np_targets=targets[indices[split_idx:]])
 
     # data loaders
@@ -69,11 +75,13 @@ if __name__ == '__main__':
     val_loader = DataLoader(val_data, batch_size=len(val_data), shuffle=False, num_workers=0)
 
     # model
-    idx_hparams = {'input_channels': input_data.shape[1],
+    idx_hparams = {'input_channels': input_data_freq.shape[1],
+                   'kernel_size': 3,
                    'n_states': len(np.unique(targets)),
                    'lr': cfg['lr'],
                    'epochs': cfg['epochs'],
                    'input_dropout': cfg['input_dropout'],
+                   'freq_name': freq_name,
                    'num_classes': 3}
 
     model = LitConvClassifier(hparams=idx_hparams)

@@ -14,8 +14,8 @@ if __name__ == '__main__':
     subjects_list = cfg['pd_subjects'] if run_pd else cfg['healthy_subjects']
 
     for subject in subjects_list:
-        # subject = 25, healthy
-        # subject = 55, PD
+        # subject = 26, healthy
+        # subject = 68, PD
         is_pd = is_pd_patient(subject, healthy_subjects=cfg['healthy_subjects'], pd_subjects=cfg['pd_subjects'])
 
         sample = BrainStatesSubject(i_sub=subject, PD=is_pd, cfg=cfg)
