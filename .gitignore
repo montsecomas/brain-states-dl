@@ -13,7 +13,6 @@ exp_logs_*/
 .idea
 .Python
 data/
-latex_results/
 data_outputs/
 build/
 develop-eggs/
@@ -134,3 +133,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+/utils/printing_scripts/
