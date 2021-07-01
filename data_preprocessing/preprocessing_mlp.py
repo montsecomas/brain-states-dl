@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     for subject in subjects_list:
         # subject = 26, healthy
-        # subject = 68, PD
+        # subject = 55, PD
         is_pd = is_pd_patient(subject, healthy_subjects=cfg['healthy_subjects'], pd_subjects=cfg['pd_subjects'])
 
         sample = BrainStatesSubject(i_sub=subject, PD=is_pd, cfg=cfg)

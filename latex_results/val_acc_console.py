@@ -10,7 +10,7 @@ from sklearn.metrics import roc_auc_score
 import glob
 
 RAND_INIT = False # to check results with random initialization of the network
-MLP = True # to check results of the MLP (if False, CNN)
+MLP = False # to check results of the MLP (if False, CNN)
 mod = 'MLP' if MLP else 'CNN'
 
 training_aucs = []
@@ -37,7 +37,7 @@ else:
 
 for subject in subjects_list:
     # subject = 25
-    # subject = 58
+    # subject = 55
     if cfg['run_pd']:
         subject_path = f'{ckpt_paths["mlp-single-pd-subject-logs"]}/subject-{subject}/'
     else:
@@ -111,9 +111,9 @@ for subject in subjects_list:
                 validation_accs.append(round(acc.item(), 3))
                 validation_aucs.append(round(auc.item(), 3))
 
-PRINT_AUCS = False
+PRINT_AUCS = True
 PRINT_ACCS = False
-PRINT_TRAIN = False
+PRINT_TRAIN = True
 if PRINT_AUCS:
     arr = training_aucs if PRINT_TRAIN else validation_aucs
     print(f'Alpha freq: {arr[0::3]}')

@@ -96,7 +96,7 @@ def run_attributions_bloc(cfg, ckpt_paths, draw_histograms, save_tables, draw_do
         subject_data = SingleSubjectNNData(subject=subject, classifier='mlp', cfg=cfg,
                                            read_silent_channels=True, force_read_split=True)
         for FREQ in freq_ids.keys():
-            # FREQ = 'gamma'
+            # FREQ = 'beta'
             mpathc = glob.glob(subject_path + f'freq-{FREQ}-single_subject/MLP{session}*/checkpoints/*.ckpt')[0]
             model = load_model(mpathc, model='mlp')
 

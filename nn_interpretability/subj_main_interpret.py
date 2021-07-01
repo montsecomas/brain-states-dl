@@ -11,7 +11,7 @@ if __name__ == '__main__':
     DO_HISTS = False # "time consuming"
     DO_TABLES = True
     DO_PLOT_MAP = False
-    DO_SURF_MAP = False
+    DO_SURF_MAP = True
     DO_SURF_POW = False
     USE_SILENT_CHANNELS = True
     # 'IntegratedGradients', 'ShapleyValueSampling', 'KernelShap', 'Lime'
