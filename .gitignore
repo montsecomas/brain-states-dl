@@ -13,6 +13,7 @@ exp_logs_*/
 .idea
 .Python
 data/
+latex_results/
 data_outputs/
 build/
 develop-eggs/
